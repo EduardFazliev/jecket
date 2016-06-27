@@ -1,7 +1,5 @@
-from trello_collector import TrelloCollector
-
 # from pull_request_file_comments import SendResultsToPullRequestFiles
-from pull_request_main_comments_section import SendResultsToPullRequest, PullRequestCommits
+from pull_request_main_comments_section import PullRequestCommits
 #
 #
 def main():
