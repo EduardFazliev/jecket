@@ -29,3 +29,35 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
         }
         content, status = self.send_post_request(url, payload)
         return content, status
+
+
+class PullRequestCommits(SendResultsToPullRequestFiles):
+    def __init__(self, base_api_link, username, passwd):
+        super(PullRequestCommits, self).__init__(
+            base_api_link, '', username, passwd
+        )
+
+    def generate_url(self):
+        """This method is generate correct url for bitbucket api.
+
+        Returns:
+            url (str): api url for adding comments.
+        """
+        slug = os.environ.get("SLUGNAME", 'DOCM')
+        project_name = os.environ.get("PROJECT_NAME", 'infotech-ansible')
+        pull_request_id = os.environ.get("PRI", '9')
+
+        url = self.base_api_link
+        url = url.replace('{SLUG}', slug)
+        url = url.replace('{PROJECT}', project_name)
+        url = url.replace('{PRI}', pull_request_id)
+        if url[-1] != '/':
+            url += '/'
+        url = '{0}commits'.format(url)
+        return url
+
+    def get_commits(self):
+        url = self.generate_url()
+        payload = {"withcounts": "false"}
+        content, code = self.send_get_request(url, payload)
+        return content, code
