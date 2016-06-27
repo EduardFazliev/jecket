@@ -47,11 +47,11 @@ class SendResultsToPullRequestFiles(object):
         url = '{0}comments'.format(url)
         return url
 
-    def send_static_check_results(self):
+    def send_static_check_results(self, pmd, checkstyle):
         text_vars = {
-            'checkstyle': os.environ.get("CHECKSTYLE_COUNT", '-1'),
-            'pmd': os.environ.get("PMD_COUNT", '-1'),
-            'build_link': os.environ.get("BUILD_self.base_api_link", 'http://jenkins.test')
+            'checkstyle': pmd,
+            'pmd': checkstyle,
+            'build_link': os.environ.get("BUILD_URL", 'http://jenkins.test')
         }
         text = "PMD Errors: {0}, Checkstyle Errors: {1}," \
                "You can find details via link {2}".format(

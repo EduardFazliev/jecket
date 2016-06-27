@@ -2,6 +2,7 @@
 import json
 import os
 
+import jbi_exceptions
 from pull_request_file_comments import SendResultsToPullRequestFiles
 
 
@@ -60,4 +61,10 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
         url = self.generate_url()
         payload = {"withcounts": "false"}
         content, code = self.send_get_request(url, payload)
-        return content, code
+        if code == 200:
+            commits = json.loads(content)
+            result = [commit['id'] for commit in commits['values']]
+        else:
+            raise jbi_exceptions.IncorrectJsonException(status=code, url=url,
+                                                        json=content)
+        return result
