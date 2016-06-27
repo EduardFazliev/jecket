@@ -1,7 +1,7 @@
-from trello_collector import TrelloCollector
+import sys
 
 # from pull_request_file_comments import SendResultsToPullRequestFiles
-from pull_request_main_comments_section import SendResultsToPullRequest, PullRequestCommits
+from pull_request_main_comments_section import PullRequestCommits
 #
 #
 def main():
@@ -36,7 +36,9 @@ def main():
         username='jenkins',
         passwd='jenkins'
     )
-    print pr.get_commits()
+    for commit_id in pr.get_commits()[0]:
+        sys.stdout.write(commit_id+',')
+
 
 if __name__ == '__main__':
     main()
