@@ -33,6 +33,7 @@ def send_file_results(file, pmd, checkstyle):
         username=user,
         passwd=passwd
     )
+    file_comments.send_static_check_results(pmd, checkstyle)
     log('Sending results finished. Output: {}'.format(file_comments))
 
 
