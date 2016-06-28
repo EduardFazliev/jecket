@@ -20,14 +20,14 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
         content, code = self.send_post_request(url, payload)
         return content, code
 
-    def send_build_status(self, state, key, url):
+    def send_build_status(self, state, key, url_to_build):
         commit_hash = os.environ.get("GIT_COMMIT", "6f313785de6ea011b4107f18d1adbf427f28e058")
         url = self.base_build_status_link + commit_hash
         log('Sending build status for commit {}.'.format(commit_hash))
         payload = {
             "state": state,
             "key": key,
-            "url": url
+            "url": url_to_build
         }
         content, status = self.send_post_request(url, payload)
         log('Sending finished. Result: status - {0}, content - {1}.'.format(
