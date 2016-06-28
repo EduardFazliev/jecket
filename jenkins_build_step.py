@@ -1,16 +1,10 @@
 import os
 from subprocess import Popen, PIPE
 
+from conf import base_api_link, base_build_status_link, user, passwd
 from jbi_logger import log
 from pull_request_file_comments import SendResultsToPullRequestFiles
-from pull_request_main_comments_section import PullRequestCommits, \
-    SendResultsToPullRequest
-
-
-base_api_link = "http://bitbucket.infotech.team/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/"
-base_build_status_link = "http://bitbucket.infotech.team/rest/build-status/1.0/commits/"
-user = 'jenkins'
-passwd = 'jenkins'
+from pull_request_main_comments_section import PullRequestCommits
 
 
 def execute_linux_command(cmd):
