@@ -51,8 +51,8 @@ class SendResultsToPullRequestFiles(object):
 
     def send_static_check_results(self, pmd, checkstyle):
         text_vars = {
-            'checkstyle': pmd,
-            'pmd': checkstyle,
+            'checkstyle': checkstyle,
+            'pmd': pmd,
             'build_link': os.environ.get("BUILD_URL", 'http://jenkins.test')
         }
         text = "PMD Errors: {0}, Checkstyle Errors: {1}," \
