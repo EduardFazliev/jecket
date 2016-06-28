@@ -15,7 +15,7 @@ def main():
     )
 
     status = sys.argv[1]
-    key = os.environ.get("BUILD_TAG", 'Custom BUILD_TAG')
+    key = os.environ.get("JOB_NAME", 'Custom BUILD_TAG')
     url = os.environ.get("BUILD_URL", 'http://custombuildurl.com')
     log('Pull Request status:{0}, key:{1}, url:{2}'.format(status, key, url))
     pr.send_build_status(status, key, url)
