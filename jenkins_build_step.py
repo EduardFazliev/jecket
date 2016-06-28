@@ -31,14 +31,17 @@ def send_file_results(file, pmd, checkstyle):
     log('Sending results finished. Output: {}'.format(file_comments))
 
 
-def static_check(file, cmd, report_flag, type):
+def static_check(file_to_check, cmd, report_flag, check_type):
     code, result = execute_linux_command(cmd)
     if code != 0:
         count = 'Error while executing static check: {}'.format(result)
     else:
         i = 0
-        log('Trying to count errors in file {0}_{1}.xml'.format(file, type))
-        with open('{0}_{1}.xml'.format(file, type), 'r') as f:
+        log('Trying to count errors in file {0}_{1}.xml'.format(
+            file_to_check, check_type
+        )
+        )
+        with open('{0}_{1}.xml'.format(file_to_check, check_type), 'r') as f:
             for line in f:
                 if report_flag in line: i += 1
         count = i

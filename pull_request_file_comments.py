@@ -22,7 +22,7 @@ class SendResultsToPullRequestFiles(object):
             checked_file (str): path to file, that is going
                 to be checked with static checks.
             username (str): login for basic auth.
-            passwd (str): passwd for basic auth.
+            passwd (str): password for basic auth.
         """
         self.username = username
         self.passwd = passwd
@@ -34,7 +34,7 @@ class SendResultsToPullRequestFiles(object):
         """This method is generate correct url for bitbucket api.
 
         Returns:
-            url (str): api url for adding comments.
+            url (str): API URL for adding comments.
         """
         slug = os.environ.get("SLUGNAME", 'DOCM')
         project_name = os.environ.get("PROJECT_NAME", 'infotech-ansible')
@@ -50,6 +50,17 @@ class SendResultsToPullRequestFiles(object):
         return url
 
     def send_static_check_results(self, pmd, checkstyle):
+        """Method sends static check results (PMD and checkstyle
+        for now) as a comment for specific file in commit.
+
+        Args:
+            pmd (int): Errors count from pmd report file.
+            checkstyle (int): Errors count from checkstyle file.
+
+        Returns:
+            content (str): Respond's payload.
+            code (int): Respons's code.
+        """
         text_vars = {
             'checkstyle': checkstyle,
             'pmd': pmd,
@@ -92,26 +103,45 @@ class SendResultsToPullRequestFiles(object):
         return content, code
 
     def check_comments_from_specific_author(self, author):
+        """Method searches for comments from specific author.
+
+        Args:
+            author (str): Username of author.
+
+        Returns:
+            comment_id (str): 'Error' if error occurred while searching
+            for comments from specific author or comment ID of first
+            found comment or None if nothing is found and there is no
+            errors.
+        """
         log('Searching comments from {}'.format(author))
-        comment_id_version = None
+        comment_id = None
         comments = self.get_all_comments_for_file()
-        for comment in comments:
-            if comment["author"]["name"] == author:
-                comment_id_version = (comment['id'], comment['version'])
-                log('Found comment for file {0} by author {1}'.format(
-                        self.checked_file, author
-                )
-                )
-                break
-        return comment_id_version
+        if comments == 'Error':
+            comment_id = 'Error'
+        else:
+            for comment in comments:
+                if comment["author"]["name"] == author:
+                    comment_id = (comment['id'], comment['version'])
+                    log('Found comment for file {0} by author {1}'.format(
+                            self.checked_file, author
+                    )
+                    )
+                    break
+        return comment_id
 
     def get_all_comments_for_file(self):
+        """Method for collectiong all comments for specific file.
+
+        Returns:
+            result (dict of str): dictionary with comments.
+        """
         payload = {'path': self.checked_file}
         url = self.generate_url()
         content, code = self.send_get_request(url, payload)
         response = json.loads(content)
 
-        if code == 200:
+        if code in [200, 204]:
             result = response["values"]
         else:
             result = 'Error'
