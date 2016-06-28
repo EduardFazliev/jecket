@@ -3,6 +3,7 @@ import json
 import os
 
 import jbi_exceptions
+from jbi_logger import log
 from pull_request_file_comments import SendResultsToPullRequestFiles
 
 
@@ -22,13 +23,14 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
     def send_build_status(self, state, key, url):
         commit_hash = os.environ.get("GIT_COMMIT", "6f313785de6ea011b4107f18d1adbf427f28e058")
         url = self.base_build_status_link + commit_hash
-        print url
+        log('Sending build status for commit {}.'.format(commit_hash))
         payload = {
             "state": state,
             "key": key,
             "url": url
         }
         content, status = self.send_post_request(url, payload)
+        log('Sending finished. Result: status - {0}.')
         return content, status
 
 
@@ -44,6 +46,7 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
         Returns:
             url (str): api url for adding comments.
         """
+        log('Generating URL for using REST API...')
         slug = os.environ.get("SLUGNAME", 'DOCM')
         project_name = os.environ.get("PROJECT_NAME", 'infotech-ansible')
         pull_request_id = os.environ.get("PRI", '9')
@@ -55,6 +58,7 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
         if url[-1] != '/':
             url += '/'
         url = '{0}commits'.format(url)
+        log('URL generated: {}'.format(url))
         return url
 
     def get_commits(self):

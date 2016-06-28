@@ -6,6 +6,8 @@ from requests.auth import HTTPBasicAuth
 import requests
 import sys
 
+from jbi_logger import log
+
 
 # noinspection PyShadowingBuiltins
 class SendResultsToPullRequestFiles(object):
@@ -90,11 +92,16 @@ class SendResultsToPullRequestFiles(object):
         return content, code
 
     def check_comments_from_specific_author(self, author):
+        log('Searching comments from {}'.format(author))
         comment_id_version = None
         comments = self.get_all_comments_for_file()
         for comment in comments:
             if comment["author"]["name"] == author:
                 comment_id_version = (comment['id'], comment['version'])
+                log('Found comment for file {0} by author {1}'.format(
+                        self.checked_file, author
+                )
+                )
                 break
         return comment_id_version
 
@@ -121,6 +128,7 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        log('POST request: url: {0}, payload: {1}'.format(url, payload))
         result = requests.post(
             url,
             json=payload,
@@ -131,6 +139,10 @@ class SendResultsToPullRequestFiles(object):
             )
         )
         return result.content, result.status_code
+        log('POST respond: staus: {0}, content: {1}'.format(
+                result.status_code, result.content
+        )
+        )
 
     def send_put_request(self, url, payload):
         """Sends put request with spec header.
@@ -143,6 +155,7 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        log('PUT request: url: {0}, payload: {1}'.format(url, payload))
         result = requests.put(
             url,
             json=payload,
@@ -151,6 +164,10 @@ class SendResultsToPullRequestFiles(object):
                 self.username,
                 self.passwd
             )
+        )
+        log('PUT respond: staus: {0}, content: {1}'.format(
+                result.status_code, result.content
+        )
         )
         return result.content, result.status_code
 
@@ -165,6 +182,7 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        log('GET request: url: {0}, payload: {1}'.format(url, payload))
         result = requests.get(
             url,
             params=payload,
@@ -173,6 +191,10 @@ class SendResultsToPullRequestFiles(object):
                 self.username,
                 self.passwd
             )
+        )
+        log('GET respond: staus: {0}, content: {1}'.format(
+                result.status_code, result.content
+        )
         )
         return result.content, result.status_code
 
