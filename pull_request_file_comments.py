@@ -168,11 +168,12 @@ class SendResultsToPullRequestFiles(object):
                 self.passwd
             )
         )
-        return result.content, result.status_code
         log('POST respond: staus: {0}, content: {1}'.format(
                 result.status_code, result.content
         )
         )
+        return result.content, result.status_code
+
 
     def send_put_request(self, url, payload):
         """Sends put request with spec header.
