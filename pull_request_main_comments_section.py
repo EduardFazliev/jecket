@@ -30,7 +30,10 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
             "url": url
         }
         content, status = self.send_post_request(url, payload)
-        log('Sending finished. Result: status - {0}.')
+        log('Sending finished. Result: status - {0}, content - {1}.'.format(
+                status, content
+        )
+        )
         return content, status
 
 
