@@ -48,6 +48,7 @@ def static_check(file, cmd, report_flag, type):
 def commit_files_handler(commit_id):
     cmd = 'git diff-tree --no-commit-id --name-only -r {}'.format(commit_id)
     code, out = execute_linux_command(cmd)
+    log('List of files changed in commit received: {}'.format(out))
     files = [file for file in out.split('\n')]
     for file in files:
         if not file or '.java' not in file:
@@ -57,11 +58,13 @@ def commit_files_handler(commit_id):
         cmd = 'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'.format(file, pmd_rules)
         violations = '</violation>'
         pmd_count = static_check(file, cmd, violations, 'pmd')
+        log('PMD count for file {0}: {1}'.format(file, pmd_count))
 
         checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './google_checks.xml')
         cmd = 'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'.format(file, checkstyle_rules)
         violations = '<error'
         checkstyle_count = static_check(file, cmd, violations, 'checkstyle')
+        log('Checkstyle count for file {0}: {1}'.format(file, checkstyle_count))
 
         send_file_results(file, pmd_count, checkstyle_count)
 
@@ -73,8 +76,10 @@ def main():
         passwd=passwd
     )
     commit_list = pr.get_commits()
+    log('List of commits for pull request received: {}'.format(commit_list))
 
     for commit_id in commit_list:
+        log('Processing commit ID {}'.format(commit_id))
         commit_files_handler(commit_id)
 
 
