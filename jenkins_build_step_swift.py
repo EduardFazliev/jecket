@@ -41,6 +41,7 @@ def static_check(file_to_check, cmd, result_file):
         log('Trying to count errors in file {}'.format(result_file))
         report = json.loads(result_file)
         summary = report['summary']
+        log('Tailor summary: {0}'.format(summary))
 
     return count
 
@@ -54,7 +55,7 @@ def commit_files_handler(commit_id):
         if not file or '.swift' not in file:
             continue
         log('Checking file {}'.format(file))
-        tailor_file = "tailor_{0}.json".format(file)
+        tailor_file = "tailor_{0}.json".format(file.replace('/', '_'))
         cmd = '/usr/local/bin/tailor -f json {0} > {1}'.format(file, tailor_file)
 
         tailor_count = static_check(file, cmd, tailor_file)
