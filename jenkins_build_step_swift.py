@@ -55,7 +55,7 @@ def commit_files_handler(commit_id):
             continue
         log('Checking file {}'.format(file))
         tailor_file = "tailor_{0}.json".format(file)
-        cmd = 'tailor -f json {0} > {1}'.format(file, tailor_file)
+        cmd = '/usr/local/bin/tailor -f json {0} > {1}'.format(file, tailor_file)
 
         tailor_count = static_check(file, cmd, tailor_file)
         log('Tailor count for file {0}: {1}'.format(file, tailor_count))
