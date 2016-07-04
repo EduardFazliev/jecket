@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import inspect
 import json
 import os
 from requests.auth import HTTPBasicAuth
@@ -39,7 +39,7 @@ class SendResultsToPullRequestFiles(object):
         slug = os.environ.get("SLUGNAME", 'DOCM')
         project_name = os.environ.get("PROJECT_NAME", 'infotech-ansible')
         pull_request_id = os.environ.get("PRI", '9')
-        
+
         url = self.base_api_link
         url = url.replace('{SLUG}', slug)
         url = url.replace('{PROJECT}', project_name)
@@ -52,43 +52,50 @@ class SendResultsToPullRequestFiles(object):
     def send_static_check_results_swift(self, tailor):
         build_link = os.environ.get("BUILD_URL", 'http://jenkins.test')
 
-        text = "Taior Swift reports: violations: {0}, warnings: {1}," \
-               "errors: {2}, skipped {3}. " \
-               "You can find details via link {4}".format(
-                   tailor['violations'],
-                   tailor['warnings'],
-                   tailor['errors'],
-                   tailor['skipped'],
-                   build_link
-               )
-
-        # Get result into temp variable, and check.
-        temp = self.check_comments_from_specific_author(
-            SendResultsToPullRequestFiles.checks_author
-        )
-        # if result is None, then we need to Post comment,
-        # if result is Not none, then we need to PUT comment.
-        if temp is None:
-            url = self.generate_url()
-            payload = {"text": text, "anchor": {"path": self.checked_file}}
-            content, code = self.send_post_request(url, payload)
+        try:
+            text = "Taior Swift reports: violations: {0}, warnings: {1}," \
+                   "errors: {2}, skipped {3}. " \
+                   "You can find details via link {4}".format(
+                            tailor['violations'],
+                            tailor['warnings'],
+                            tailor['errors'],
+                            tailor['skipped'],
+                            build_link
+                   )
+        except Exception as e:
+            log((
+                'Exception while generating text in for '
+                'Tailor comment: {1}'.format(e))
+                )
+            content, code = None, -1
         else:
-            # And to PUT we need to pass additional parameters:
-            # id of existing comment and it's version.
-            id, version = temp
-            url = self.generate_url()
-            self.base_api_link = '{0}/{1}'.format(url, id)
-            payload = {
-                "version": version,
-                "text": text,
-                "anchor": {
-                    "path": self.checked_file
-                }
-            }
-            content, code = self.send_put_request(
-                self.base_api_link,
-                payload
+            # Get result into temp variable, and check.
+            temp = self.check_comments_from_specific_author(
+                SendResultsToPullRequestFiles.checks_author
             )
+            # if result is None, then we need to Post comment,
+            # if result is Not none, then we need to PUT comment.
+            if temp is None:
+                url = self.generate_url()
+                payload = {"text": text, "anchor": {"path": self.checked_file}}
+                content, code = self.send_post_request(url, payload)
+            else:
+                # And to PUT we need to pass additional parameters:
+                # id of existing comment and it's version.
+                id, version = temp
+                url = self.generate_url()
+                self.base_api_link = '{0}/{1}'.format(url, id)
+                payload = {
+                    "version": version,
+                    "text": text,
+                    "anchor": {
+                        "path": self.checked_file
+                    }
+                }
+                content, code = self.send_put_request(
+                        self.base_api_link,
+                        payload
+                )
         return content, code
 
     def send_static_check_results(self, pmd, checkstyle):
@@ -110,14 +117,14 @@ class SendResultsToPullRequestFiles(object):
         }
         text = "PMD Errors: {0}, Checkstyle Errors: {1}," \
                "You can find details via link {2}".format(
-                   text_vars['pmd'],
-                   text_vars['checkstyle'],
-                   text_vars['build_link']
-               )
+                text_vars['pmd'],
+                text_vars['checkstyle'],
+                text_vars['build_link']
+        )
 
         # Get result into temp variable, and check.
         temp = self.check_comments_from_specific_author(
-            SendResultsToPullRequestFiles.checks_author
+                SendResultsToPullRequestFiles.checks_author
         )
         # if result is None, then we need to Post comment,
         # if result is Not none, then we need to PUT comment.
@@ -139,8 +146,8 @@ class SendResultsToPullRequestFiles(object):
                 }
             }
             content, code = self.send_put_request(
-                self.base_api_link,
-                payload
+                    self.base_api_link,
+                    payload
             )
         return content, code
 
@@ -202,20 +209,19 @@ class SendResultsToPullRequestFiles(object):
         """
         log('POST request: url: {0}, payload: {1}'.format(url, payload))
         result = requests.post(
-            url,
-            json=payload,
-            headers={"X-Atlassian-Token": "no-check"},
-            auth=HTTPBasicAuth(
-                self.username,
-                self.passwd
-            )
+                url,
+                json=payload,
+                headers={"X-Atlassian-Token": "no-check"},
+                auth=HTTPBasicAuth(
+                        self.username,
+                        self.passwd
+                )
         )
         log('POST respond: staus: {0}, content: {1}'.format(
                 result.status_code, result.content
         )
         )
         return result.content, result.status_code
-
 
     def send_put_request(self, url, payload):
         """Sends put request with spec header.
@@ -230,13 +236,13 @@ class SendResultsToPullRequestFiles(object):
         """
         log('PUT request: url: {0}, payload: {1}'.format(url, payload))
         result = requests.put(
-            url,
-            json=payload,
-            headers={"X-Atlassian-Token": "no-check"},
-            auth=HTTPBasicAuth(
-                self.username,
-                self.passwd
-            )
+                url,
+                json=payload,
+                headers={"X-Atlassian-Token": "no-check"},
+                auth=HTTPBasicAuth(
+                        self.username,
+                        self.passwd
+                )
         )
         log('PUT respond: staus: {0}, content: {1}'.format(
                 result.status_code, result.content
@@ -257,13 +263,13 @@ class SendResultsToPullRequestFiles(object):
         """
         log('GET request: url: {0}, payload: {1}'.format(url, payload))
         result = requests.get(
-            url,
-            params=payload,
-            headers={"X-Atlassian-Token": "no-check"},
-            auth=HTTPBasicAuth(
-                self.username,
-                self.passwd
-            )
+                url,
+                params=payload,
+                headers={"X-Atlassian-Token": "no-check"},
+                auth=HTTPBasicAuth(
+                        self.username,
+                        self.passwd
+                )
         )
         log('GET respond: staus: {0}, content: {1}'.format(
                 result.status_code, result.content
@@ -274,10 +280,10 @@ class SendResultsToPullRequestFiles(object):
 
 def main():
     pr_test = SendResultsToPullRequestFiles(
-        base_api_link=sys.argv[1],
-        checked_file=sys.argv[2],
-        username='jenkins',
-        passwd='jenkins'
+            base_api_link=sys.argv[1],
+            checked_file=sys.argv[2],
+            username='jenkins',
+            passwd='jenkins'
     )
     result = pr_test.send_static_check_results()
     print result

@@ -28,15 +28,18 @@ def send_file_results(file, tailor_count):
         username=user,
         passwd=passwd
     )
-    file_comments.send_static_check_results_swift(tailor_count)
-    log('Sending results finished. Output: {}'.format(file_comments))
+    content, code = file_comments.send_static_check_results_swift(tailor_count)
+    if code == -1:
+        log('Sending results for file {} failed.'.format(file))
+    else:
+        log('Sending results finished. Output: {}'.format(file_comments))
 
 
 def static_check(file_to_check, cmd, result_file):
     code, result = execute_linux_command(cmd)
 
     if code != 0:
-        count = 'Error while executing static check: {}'.format(result)
+        count = (-1, 'Error while executing static check: {}'.format(result))
     else:
         log('Trying to count errors in file {}'.format(result_file))
         with open(result_file, 'r') as f:
@@ -61,9 +64,12 @@ def commit_files_handler(commit_id):
         cmd = '/usr/local/bin/tailor -f json {0} > {1}'.format(file, tailor_file)
 
         tailor_count = static_check(file, cmd, tailor_file)
-        log('Tailor count for file {0}: {1}'.format(file, tailor_count))
+        log('Tailor results for file {0}: {1}'.format(file, tailor_count))
 
-        send_file_results(file, tailor_count)
+        if type(tailor_count) == tuple:
+            log('Error while tailoring file {0}: {1}'.format(file, tailor_count))
+        else:
+            send_file_results(file, tailor_count)
 
 
 def main():
