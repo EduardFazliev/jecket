@@ -49,6 +49,48 @@ class SendResultsToPullRequestFiles(object):
         url = '{0}comments'.format(url)
         return url
 
+    def send_static_check_results_swift(self, tailor):
+        build_link = os.environ.get("BUILD_URL", 'http://jenkins.test')
+
+        text = "Taior Swift reports: violations: {0}, warnings: {1}," \
+               "errors: {2}, skipped {3}. " \
+               "You can find details via link {4}".format(
+                   tailor['violations'],
+                   tailor['warnings'],
+                   tailor['errors'],
+                   tailor['skipped'],
+                   build_link
+               )
+
+        # Get result into temp variable, and check.
+        temp = self.check_comments_from_specific_author(
+            SendResultsToPullRequestFiles.checks_author
+        )
+        # if result is None, then we need to Post comment,
+        # if result is Not none, then we need to PUT comment.
+        if temp is None:
+            url = self.generate_url()
+            payload = {"text": text, "anchor": {"path": self.checked_file}}
+            content, code = self.send_post_request(url, payload)
+        else:
+            # And to PUT we need to pass additional parameters:
+            # id of existing comment and it's version.
+            id, version = temp
+            url = self.generate_url()
+            self.base_api_link = '{0}/{1}'.format(url, id)
+            payload = {
+                "version": version,
+                "text": text,
+                "anchor": {
+                    "path": self.checked_file
+                }
+            }
+            content, code = self.send_put_request(
+                self.base_api_link,
+                payload
+            )
+        return content, code
+
     def send_static_check_results(self, pmd, checkstyle):
         """Method sends static check results (PMD and checkstyle
         for now) as a comment for specific file in commit.
