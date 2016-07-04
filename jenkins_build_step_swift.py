@@ -39,7 +39,9 @@ def static_check(file_to_check, cmd, result_file):
         count = 'Error while executing static check: {}'.format(result)
     else:
         log('Trying to count errors in file {}'.format(result_file))
-        report = json.loads(result_file)
+        with open(result_file, 'r') as f:
+            result_json = f.read().replace('\n', '')
+        report = json.loads(result_json)
         summary = report['summary']
         log('Tailor summary: {0}'.format(summary))
 
