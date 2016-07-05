@@ -8,9 +8,12 @@ from pull_request_file_comments import SendResultsToPullRequestFiles
 
 
 class SendResultsToPullRequest(SendResultsToPullRequestFiles):
-    def __init__(self, base_api_link, username, passwd, base_build_status_link):
+    rest_api_link = '/rest/build-status/1.0/commits/'
+
+    def __init__(self, base_api_link, username, passwd,
+                 base_build_status_link):
         super(SendResultsToPullRequest, self).__init__(
-            base_api_link, '', username, passwd
+                base_api_link, '', username, passwd
         )
         self.base_build_status_link = base_build_status_link
 
@@ -21,8 +24,9 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
         return content, code
 
     def send_build_status(self, state, key, url_to_build):
-        commit_hash = os.environ.get("GIT_COMMIT", "6f313785de6ea011b4107f18d1adbf427f28e058")
-        url = self.base_build_status_link + commit_hash
+        commit_hash = os.environ.get("GIT_COMMIT")
+        url = (self.base_api_link + SendResultsToPullRequest.rest_api_link +
+               commit_hash)
         log('Sending build status for commit {}.'.format(commit_hash))
         payload = {
             "state": state,
@@ -30,18 +34,15 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
             "url": url_to_build
         }
         content, status = self.send_post_request(url, payload)
-        log('Sending finished. Result: status - {0}, content - {1}.'.format(
-                status, content
-        )
-        )
+        log('Sending finished. Result: status - {0}, '
+            'content - {1}.'.format(status, content))
         return content, status
 
 
 class PullRequestCommits(SendResultsToPullRequestFiles):
     def __init__(self, base_api_link, username, passwd):
-        super(PullRequestCommits, self).__init__(
-            base_api_link, '', username, passwd
-        )
+        super(PullRequestCommits, self).__init__(base_api_link, '', username,
+                                                 passwd)
 
     def generate_url(self):
         """This method is generate correct url for bitbucket api.
@@ -50,11 +51,11 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
             url (str): api url for adding comments.
         """
         log('Generating URL for using REST API...')
-        slug = os.environ.get("SLUGNAME", 'DOCM')
-        project_name = os.environ.get("PROJECT_NAME", 'infotech-ansible')
-        pull_request_id = os.environ.get("PRI", '9')
+        slug = os.environ.get("SLUG", 'DOCM')
+        project_name = os.environ.get("PROJECT", 'infotech-ansible')
+        pull_request_id = os.environ.get("PR_ID", '9')
 
-        url = self.base_api_link
+        url = self.base_api_link + SendResultsToPullRequestFiles.rest_api_link
         url = url.replace('{SLUG}', slug)
         url = url.replace('{PROJECT}', project_name)
         url = url.replace('{PRI}', pull_request_id)
