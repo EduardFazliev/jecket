@@ -49,18 +49,49 @@ def static_check_java(file_to_check, cmd, report_flag, check_type):
     return count
 
 
-def static_check_swift(file_to_check, cmd, result_file):
+def static_check_swift(cmd, result_file):
+    """Function is loads file with Tailor report in JSON format
+    to string and returns summary section.
+
+     Args:
+         cmd (str): Linux command to invoke. Basically it executes
+            Tailor with '-f json' argument.
+         result_file (str): Relative path to file with Tailor output.
+            File must be created by invoking 'cmd' command and must
+            contain Tailor check results in JSON format.
+
+    Returns:
+        If return code ('code') equal 200 or 204:
+        count (dict of title: value):
+            title (str): Type of violation.
+            value (str): Number of violations of this type in file.
+        If return code ('code') not equal 200 or 204 or
+            exception occurred:
+        count (tuple of (int, str)):
+            status (int):
+            error (str):
+    """
     code, result = execute_linux_command(cmd)
 
     if code != 0:
         count = (-1, 'Error while executing static check: {}'.format(result))
     else:
         log('Trying to count errors in file {}'.format(result_file))
-        with open(result_file, 'r') as f:
-            result_json = f.read().replace('\n', '')
-        report = json.loads(result_json)
-        count = report['summary']
-        log('Tailor summary: {0}'.format(count))
+        try:
+            with open(result_file, 'r') as f:
+                result_json = f.read().replace('\n', '')
+        except IOError as e:
+            log('Error while processing file {0}: {1}'.format(result_file, e))
+            count = (-1, e)
+        else:
+            try:
+                report = json.loads(result_json)
+            except ValueError as e:
+                log('JSON loads operation is ended with error: {0}'.format(e))
+                count = (-1, e)
+            else:
+                count = report['summary']
+                log('Tailor summary: {0}'.format(count))
 
     return count
 
@@ -117,7 +148,7 @@ def commit_files_handler(commit_id, required_extension):
             cmd = '/usr/local/bin/tailor -f json {0} > {1}'.format(file,
                                                                    tailor_file)
 
-            tailor_count = static_check_swift(file, cmd, tailor_file)
+            tailor_count = static_check_swift(cmd, tailor_file)
 
             if type(tailor_count) == tuple:
                 log('Error while tailoring file {0}: {1}'.format(file,
@@ -131,7 +162,7 @@ def commit_files_handler(commit_id, required_extension):
                             tailor_count['warnings'], tailor_count['skipped'])
                 )
                 result = {'Tailor Swift reports:': tailor_message}
-                send_file_results(file, tailor_count)
+                send_file_results(file, result)
 
 
 def main():
