@@ -10,8 +10,7 @@ from pull_request_file_comments import SendResultsToPullRequestFiles
 class SendResultsToPullRequest(SendResultsToPullRequestFiles):
     rest_api_link = '/rest/build-status/1.0/commits/'
 
-    def __init__(self, base_api_link, username, passwd,
-                 base_build_status_link):
+    def __init__(self, base_api_link, username, passwd):
         super(SendResultsToPullRequest, self).__init__(base_api_link, '',
                                                        username, passwd)
 
