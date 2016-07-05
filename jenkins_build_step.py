@@ -4,7 +4,7 @@ from subprocess import Popen, PIPE
 
 import sys
 
-from conf import base_api_link, base_build_status_link, user, passwd
+from conf import base_api_link, user, passwd
 from jbi_logger import log
 from pull_request_file_comments import SendResultsToPullRequestFiles
 from pull_request_main_comments_section import PullRequestCommits
