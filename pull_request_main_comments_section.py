@@ -12,10 +12,8 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
 
     def __init__(self, base_api_link, username, passwd,
                  base_build_status_link):
-        super(SendResultsToPullRequest, self).__init__(
-                base_api_link, '', username, passwd
-        )
-        self.base_build_status_link = base_build_status_link
+        super(SendResultsToPullRequest, self).__init__(base_api_link, '',
+                                                       username, passwd)
 
     def send_comment(self, comment):
         url = self.generate_url()
