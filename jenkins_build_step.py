@@ -22,13 +22,13 @@ def execute_linux_command(cmd):
         return code, out
 
 
-def send_file_results(file, pmd, checkstyle):
+def send_file_results(file, results):
     log('Sending results for file {}.'.format(file))
     file_comments = SendResultsToPullRequestFiles(base_api_link=base_api_link,
                                                   checked_file=file,
                                                   username=user,
                                                   passwd=passwd)
-    file_comments.send_static_check_results(pmd, checkstyle)
+    file_comments.send_static_check_results(results)
     log('Sending results finished. Output: {}'.format(file_comments))
 
 
@@ -105,7 +105,10 @@ def commit_files_handler(commit_id, required_extension):
             log('Checkstyle count for file {0}: {1}'.format(file,
                                                             checkstyle_count))
             # Aggregating results:
-            result = {'PMD ': pmd_count, 'Checkstyle ': checkstyle_count}
+            result = {
+                'PMD errors: ': pmd_count,
+                'Checkstyle errors: ': checkstyle_count
+            }
 
             send_file_results(file, result)
         elif required_extension == '.swift':
@@ -122,6 +125,12 @@ def commit_files_handler(commit_id, required_extension):
             else:
                 log('Tailor results for file {0}: {1}'.format(file,
                                                               tailor_count))
+                tailor_message = (
+                    'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
+                    .format(tailor_count['violations'], tailor_count['errors'],
+                            tailor_count['warnings'], tailor_count['skipped'])
+                )
+                result = {'Tailor Swift reports:': tailor_message}
                 send_file_results(file, tailor_count)
 
 

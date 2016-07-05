@@ -115,7 +115,7 @@ class SendResultsToPullRequestFiles(object):
         build_link = os.environ.get("BUILD_URL", "http://jenkins.test")
         text = str
         for key, value in results:
-            text += "{0} Errors: {1}".format(key, value)
+            text += "{0} {1}".format(key, value)
         text += "You can find details via link {}".format(build_link)
 
         # Get result into temp variable, and check.
