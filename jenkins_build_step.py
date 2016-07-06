@@ -12,39 +12,70 @@ from pull_request_main_comments_section import PullRequestCommits
 
 def execute_linux_command(cmd):
     log('Executing command {}'.format(cmd))
-    proc = Popen(cmd, stderr=PIPE, stdout=PIPE, shell=True)
-    out, err = proc.communicate()
-    code = proc.returncode
-    log('Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
-    if code != 0:
-        return code, err
-    elif code == 0:
-        return code, out
+    try:
+        proc = Popen(cmd, stderr=PIPE, stdout=PIPE, shell=True)
+        out, err = proc.communicate()
+        code = proc.returncode
+    except Exception as e:
+        log('Error occurred while executing command {}: {}'.format(cmd, e))
+        result = (-1, e)
+    else:
+        log('Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
+        if code != 0:
+            result = (code, err)
+        elif code == 0:
+            result = (code, out)
+    finally:
+        return result
 
 
-def send_file_results(file, results):
-    log('Sending results for file {}.'.format(file))
+def send_file_results(target_file, results):
+    """Function sends dictionary with results to
+        send_static_check_results method.
+
+    Args:
+        target_file (str): relative path to file in repository,
+            that will be commented.
+        results (dict of error_title:error_value):
+            {
+                error_title (str): Type of error.
+                    Example: pmd, checkstyle, violation, warning.
+                error_value (int): Number of errors if this type.
+            }
+    """
+    log('Sending results for file {}.'.format(target_file))
     file_comments = SendResultsToPullRequestFiles(base_api_link=base_api_link,
-                                                  checked_file=file,
+                                                  checked_file=target_file,
                                                   username=user,
                                                   passwd=passwd)
-    file_comments.send_static_check_results(results)
-    log('Sending results finished. Output: {}'.format(file_comments))
+    result = file_comments.send_static_check_results(results)
+    log(
+        'Sending results finished. Output: code: {0}, '
+        'content: {1}'.format(result[0], result[1])
+    )
 
 
 def static_check_java(file_to_check, cmd, report_flag, check_type):
+    """Function executes command, that generate report file (cmd)
+        and counts lines with that contains special line (report_flag).
+
+    Args:
+        file_to_check (str): Relative path to report file.
+        cmd (str): Linux command, that needs to be executed.
+        report_flag (str): String, that indicates violation.
+        check_type (str): Type of static check.
+    """
     code, result = execute_linux_command(cmd)
     if code != 0:
-        count = 'Error while executing static check: {}'.format(result)
+        count = (-1, 'Error while executing static check: {}'.format(result))
     else:
         i = 0
-        log('Trying to count errors in file {0}_{1}.xml'.format(
-                file_to_check, check_type
-        )
-        )
+        log('Trying to count errors in file {0}_{1}.xml'.format(file_to_check,
+                                                                check_type))
         with open('{0}_{1}.xml'.format(file_to_check, check_type), 'r') as f:
             for line in f:
-                if report_flag in line: i += 1
+                if report_flag in line:
+                    i += 1
         count = i
     return count
 
@@ -67,9 +98,9 @@ def static_check_swift(cmd, result_file):
             value (str): Number of violations of this type in file.
         If return code ('code') not equal 200 or 204 or
             exception occurred:
-        count (tuple of (int, str)):
-            status (int):
-            error (str):
+        count (tuple of (status, error)):
+            status (int): Error code.
+            error (str): Error description.
     """
     code, result = execute_linux_command(cmd)
 
