@@ -110,13 +110,13 @@ class SendResultsToPullRequestFiles(object):
 
         Returns:
             content (str): Respond's payload.
-            code (int): Respons's code.
+            code (int): Response's code.
         """
         build_link = os.environ.get("BUILD_URL", "http://jenkins.test")
         text = ''
         for key in results.iterkeys():
             text += "{0} {1}".format(key, results[key])
-        text += "You can find details via link {}".format(build_link)
+        text += " You can find details via link {}".format(build_link)
 
         # Get result into temp variable, and check.
         temp = self.check_comments_from_specific_author(
