@@ -183,7 +183,7 @@ def commit_files_handler(commit_id, required_extension):
             send_file_results(file, result)
         elif required_extension == '.swift':
             tailor_file = "tailor_{0}.json".format(file.replace('/', '_'))
-            cmd = '/usr/local/bin/tailor -f json {0} > {1}'.format(file,
+            cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(file,
                                                                    tailor_file)
 
             tailor_count = static_check_swift(cmd, tailor_file)
@@ -203,7 +203,7 @@ def commit_files_handler(commit_id, required_extension):
                 send_file_results(file, result)
         elif required_extension == '.go':
             report_file = '{0}.golint'.format(file.replace('/', '_'))
-            cmd = 'golint -min_confidence 0.1 {0} > {1}'.format(file,
+            cmd = 'golint -min_confidence 0.1 {0} > {1} 2>&1'.format(file,
                                                                 report_file)
             execute_linux_command(cmd)
             golint_count = count_lines(report_file)
