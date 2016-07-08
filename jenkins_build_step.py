@@ -204,6 +204,7 @@ def commit_files_handler(commit_id, required_extension):
             report_file = '{0}.golint'.format(file.replace('/', '_'))
             cmd = 'golint -min_confidence 0.1 {0} > {1}'.format(file,
                                                                 report_file)
+            execute_linux_command(cmd)
             golint_count = count_lines(report_file)
             golint_message = 'Violations: {}'.format(golint_count)
             result = {'GoLint reports:': golint_message}
