@@ -128,10 +128,11 @@ def static_check_swift(cmd, result_file):
 
 
 def count_lines(filename):
+    i = -1
     with open(filename) as f:
         for i, _ in enumerate(f):
             pass
-        return i + 1
+    return i + 1
 
 
 def commit_files_handler(commit_id, required_extension):
@@ -206,7 +207,9 @@ def commit_files_handler(commit_id, required_extension):
                                                                 report_file)
             execute_linux_command(cmd)
             golint_count = count_lines(report_file)
+            log('GoLint violations: '.format(golint_count))
             golint_message = 'Violations: {}'.format(golint_count)
+            log('GoLint message: '.format(golint_message))
             result = {'GoLint reports:': golint_message}
             send_file_results(file, result)
 
