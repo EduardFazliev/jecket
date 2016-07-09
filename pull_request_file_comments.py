@@ -108,17 +108,18 @@ class SendResultsToPullRequestFiles(object):
             errors.
         """
         log('Searching comments from {}'.format(author))
-        comment_id = None
+        result = None
         comments = self.get_all_comments_for_file()
         if comments == 'Error':
-            comment_id = 'Error'
+            result = 'Error'
         else:
             for comment in comments:
                 if comment["author"]["name"] == author:
                     comment_id = (comment["id"], comment["version"])
+                    result = comment_id
                     log('Found comment for file {0} by author {1}'.format(self.checked_file, author))
                     break
-        return comment_id
+        return result
 
     def get_all_comments_for_file(self):
         """Method for collectiong all comments for specific file.
@@ -152,7 +153,7 @@ class SendResultsToPullRequestFiles(object):
         result = requests.post(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
                                auth=HTTPBasicAuth(self.username, self.passwd))
 
-        log('POST respond: staus: {0}, content: {1}'.format(result.status_code, result.content))
+        log('POST respond: status: {0}, content: {1}'.format(result.status_code, result.content))
         return result.content, result.status_code
 
     def send_put_request(self, url, payload):
