@@ -1,18 +1,14 @@
 import os
 import sys
 
-from conf import base_api_link, base_build_status_link, user, passwd
+from conf import base_api_link, user, passwd
 from jbi_logger import log
 from pull_request_main_comments_section import SendResultsToPullRequest
 
 
 def main():
-    pr = SendResultsToPullRequest(
-            base_api_link=base_api_link,
-            username=user,
-            passwd=passwd,
-            base_build_status_link=base_build_status_link
-    )
+    pr = SendResultsToPullRequest(base_api_link=base_api_link, username=user,
+                                  passwd=passwd)
 
     status = sys.argv[1]
     key = os.environ.get("JOB_NAME", 'Custom BUILD_TAG')
