@@ -127,6 +127,15 @@ def static_check_swift(cmd, result_file):
     return count
 
 
+def count_lines(filename):
+    i = -1
+    with open(filename) as f:
+        for i, _ in enumerate(f):
+            pass
+        log('File line enumerate counter result: {}'.format(i))
+    return i + 1
+
+
 def commit_files_handler(commit_id, required_extension):
     # Here we will get list of files, that have been changed in this
     # commit, if command succeed.
@@ -174,9 +183,8 @@ def commit_files_handler(commit_id, required_extension):
 
             send_file_results(file, result)
         elif required_extension == '.swift':
-            log('Checking file {}'.format(file))
             tailor_file = "tailor_{0}.json".format(file.replace('/', '_'))
-            cmd = '/usr/local/bin/tailor -f json {0} > {1}'.format(file,
+            cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(file,
                                                                    tailor_file)
 
             tailor_count = static_check_swift(cmd, tailor_file)
@@ -194,6 +202,19 @@ def commit_files_handler(commit_id, required_extension):
                 )
                 result = {'Tailor Swift reports:': tailor_message}
                 send_file_results(file, result)
+        elif required_extension == '.go':
+            report_file = '{0}.golint'.format(file.replace('/', '_'))
+            cmd = (
+                'golint -min_confidence 0.1 {0} > {1} 2>&1'
+                .format(file, report_file)
+            )
+            execute_linux_command(cmd)
+            golint_count = count_lines(report_file)
+            log('GoLint violations: {}'.format(golint_count))
+            golint_message = 'Violations: '.format(golint_count)
+            log('GoLint message: {}'.format(golint_message))
+            result = {'GoLint reports:': golint_message}
+            send_file_results(file, result)
 
 
 def main():
