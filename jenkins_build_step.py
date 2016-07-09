@@ -132,6 +132,7 @@ def count_lines(filename):
     with open(filename) as f:
         for i, _ in enumerate(f):
             pass
+        log('File line enumerate counter result: {}'.format(i))
     return i + 1
 
 
@@ -203,13 +204,15 @@ def commit_files_handler(commit_id, required_extension):
                 send_file_results(file, result)
         elif required_extension == '.go':
             report_file = '{0}.golint'.format(file.replace('/', '_'))
-            cmd = 'golint -min_confidence 0.1 {0} > {1} 2>&1'.format(file,
-                                                                report_file)
+            cmd = (
+                'golint -min_confidence 0.1 {0} > {1} 2>&1'
+                .format(file, report_file)
+            )
             execute_linux_command(cmd)
             golint_count = count_lines(report_file)
-            log('GoLint violations: '.format(golint_count))
-            golint_message = 'Violations: {}'.format(golint_count)
-            log('GoLint message: '.format(golint_message))
+            log('GoLint violations: {}'.format(golint_count))
+            golint_message = 'Violations: '.format(golint_count)
+            log('GoLint message: {}'.format(golint_message))
             result = {'GoLint reports:': golint_message}
             send_file_results(file, result)
 
