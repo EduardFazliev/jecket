@@ -48,42 +48,6 @@ class SendResultsToPullRequestFiles(object):
         url = '{0}comments'.format(url)
         return url
 
-    def send_static_check_results_swift(self, tailor):
-        build_link = os.environ.get("BUILD_URL", 'http://jenkins.test')
-
-        try:
-            text = ("Taior Swift reports: violations: {0}, warnings: {1}, errors: {2}, skipped {3}."
-                    "You can find details via link {4}".format(tailor['violations'], tailor['warnings'],
-                                                               tailor['errors'], tailor['skipped'], build_link)
-                    )
-        except Exception as e:
-            log('Exception while generating text in for Tailor comment: {}'.format(e))
-            content, code = None, -1
-        else:
-            # Get result into temp variable, and check.
-            temp = self.check_comments_from_specific_author(SendResultsToPullRequestFiles.checks_author)
-            # if result is None, then we need to Post comment,
-            # if result is Not none, then we need to PUT comment.
-            if temp is None:
-                url = self.generate_url()
-                payload = {"text": text, "anchor": {"path": self.checked_file}}
-                content, code = self.send_post_request(url, payload)
-            else:
-                # And to PUT we need to pass additional parameters:
-                # id of existing comment and it's version.
-                id, version = temp
-                url = self.generate_url()
-                self.base_api_link = '{0}/{1}'.format(url, id)
-                payload = {
-                    "version": version,
-                    "text": text,
-                    "anchor": {
-                        "path": self.checked_file
-                    }
-                }
-                content, code = self.send_put_request(self.base_api_link, payload)
-        return content, code
-
     def send_static_check_results(self, results):
         """Method sends static check results (PMD and checkstyle
         for now) as a comment for specific file in commit.
@@ -144,17 +108,18 @@ class SendResultsToPullRequestFiles(object):
             errors.
         """
         log('Searching comments from {}'.format(author))
-        comment_id = None
+        result = None
         comments = self.get_all_comments_for_file()
         if comments == 'Error':
-            comment_id = 'Error'
+            result = 'Error'
         else:
             for comment in comments:
                 if comment["author"]["name"] == author:
                     comment_id = (comment["id"], comment["version"])
+                    result = comment_id
                     log('Found comment for file {0} by author {1}'.format(self.checked_file, author))
                     break
-        return comment_id
+        return result
 
     def get_all_comments_for_file(self):
         """Method for collectiong all comments for specific file.
@@ -188,7 +153,7 @@ class SendResultsToPullRequestFiles(object):
         result = requests.post(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
                                auth=HTTPBasicAuth(self.username, self.passwd))
 
-        log('POST respond: staus: {0}, content: {1}'.format(result.status_code, result.content))
+        log('POST respond: status: {0}, content: {1}'.format(result.status_code, result.content))
         return result.content, result.status_code
 
     def send_put_request(self, url, payload):
