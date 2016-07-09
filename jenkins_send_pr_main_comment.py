@@ -5,10 +5,9 @@ from pull_request_main_comments_section import SendResultsToPullRequest
 
 
 def main():
-    pr = SendResultsToPullRequest(base_api_link=base_api_link, username=user,
-                                  passwd=passwd)
+    pr = SendResultsToPullRequest(base_api_link=base_api_link, username=user, passwd=passwd)
     comment = sys.argv[1]
-    pr.send_comment()
+    pr.send_comment(comment=comment)
 
 
 if __name__ == '__main__':
