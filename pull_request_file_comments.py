@@ -52,10 +52,10 @@ class SendResultsToPullRequestFiles(object):
         build_link = os.environ.get("BUILD_URL", 'http://jenkins.test')
 
         try:
-            text = ("Taior Swift reports: violations: {0}, warnings: {1}, errors: {2}, skipped {3}."
-                    "You can find details via link {4}".format(tailor['violations'], tailor['warnings'],
-                                                               tailor['errors'], tailor['skipped'], build_link)
-                    )
+            text = (
+                "Taior Swift reports: warnings: {0}, errors: {1}. You can find details via link {2}"
+                .format(tailor['warnings'], tailor['errors'], build_link)
+            )
         except Exception as e:
             log('Exception while generating text in for Tailor comment: {}'.format(e))
             content, code = None, -1
