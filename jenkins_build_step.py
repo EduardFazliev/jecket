@@ -46,11 +46,8 @@ def send_file_results(target_file, results):
     log('Sending results for file {}.'.format(target_file))
     file_comments = SendResultsToPullRequestFiles(base_api_link=base_api_link, checked_file=target_file, username=user,
                                                   passwd=passwd)
-    result = file_comments.send_static_check_results(results)
-    log(
-        'Sending results finished. Output: code: {0}, '
-        'content: {1}'.format(result[0], result[1])
-    )
+    code, message = file_comments.send_static_check_results(results)
+    log('Sending results finished. Output: code: {0}, content: {1}'.format(code, message))
 
 
 def static_check_java(file_to_check, cmd, report_flag, check_type):

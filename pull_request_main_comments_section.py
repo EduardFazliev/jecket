@@ -16,11 +16,10 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
     def send_comment(self, comment):
         url = self.generate_url()
         payload = {"text": comment}
-        content, code = self.send_post_request(url, payload)
-        return content, code
+        return self.send_post_request(url, payload)
 
     def send_build_status(self, state, key, url_to_build):
-        commit_hash = os.environ.get("GIT_COMMIT")
+        commit_hash = os.environ.get("GIT_COMMIT", "TEST_HASH")
         url = self.base_api_link + SendResultsToPullRequest.rest_api_link + commit_hash
         log('Sending build status for commit {}.'.format(commit_hash))
         payload = {
@@ -28,9 +27,9 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
             "key": key,
             "url": url_to_build
         }
-        content, status = self.send_post_request(url, payload)
-        log('Sending finished. Result: status - {0}, content - {1}.'.format(status, content))
-        return content, status
+        code, content = self.send_post_request(url, payload)
+        log('Sending finished. Result: status - {0}, content - {1}.'.format(code, content))
+        return (code, content)
 
 
 class PullRequestCommits(SendResultsToPullRequestFiles):
@@ -43,12 +42,25 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
         Returns:
             url (str): api url for adding comments.
         """
-        log('Generating URL for using REST API...')
-        slug = os.environ.get("SLUG", 'DOCM')
-        project_name = os.environ.get("PROJECT", 'infotech-ansible')
-        pull_request_id = os.environ.get("PR_ID", '9')
+        if self.slug is None:
+            log("Slug is not provided to class, trying to get it from environment variable.")
+            slug = os.environ.get("SLUG", "TEST_KEY")
+        else:
+            slug = self.slug
 
-        url = self.base_api_link + SendResultsToPullRequestFiles.rest_api_link
+        if self.project_name is None:
+            log("Project name is not provided to class, trying to get it from environment variable.")
+            project_name = os.environ.get("PROJECT", "TEST_REPO")
+        else:
+            project_name = self.project_name
+
+        if self.pull_request_id is None:
+            log("Pull request ID is not provided to class, trying to get it from environment variable.")
+            pull_request_id = os.environ.get("PR_ID", "TEST_ID")
+        else:
+            pull_request_id = self.pull_request_id
+
+        url = self.base_api_link + self.rest_api_link
         url = url.replace('{SLUG}', slug)
         url = url.replace('{PROJECT}', project_name)
         url = url.replace('{PRI}', pull_request_id)
@@ -61,11 +73,11 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
     def get_commits(self):
         url = self.generate_url()
         payload = {"withcounts": "false"}
-        content, code = self.send_get_request(url, payload)
-        if code == 200:
-            commits = json.loads(content)
+        code, message = self.send_get_request(url, payload)
+        if code in [200, 204]:
+            commits = json.loads(message)
             result = [commit['id'] for commit in commits['values']]
         else:
             raise jbi_exceptions.IncorrectJsonException(status=code, url=url,
-                                                        json=content)
+                                                        json=message)
         return result

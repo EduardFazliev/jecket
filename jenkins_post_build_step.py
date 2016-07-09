@@ -12,7 +12,9 @@ def main():
     key = os.environ.get("JOB_NAME", "Custom BUILD_TAG")
     url = os.environ.get("BUILD_URL", "http://custombuildurl.com")
     log('Pull Request status:{0}, key:{1}, url:{2}'.format(status, key, url))
-    pr.send_build_status(status, key, url)
+    log("Trying to set pull request status...")
+    code, message = pr.send_build_status(status, key, url)
+    log("Finished. Code: {0}, message: {1}".format(code, message))
 
 
 if __name__ == '__main__':

@@ -13,8 +13,15 @@ class SendResultsToPullRequestFiles(object):
     """
     This class sends static checks results to pull request files.
     """
-    checks_author = 'jenkins'
-    rest_api_link = '/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/'
+    def set_data(self, checks_author="jenkins",
+                 rest_api_link="/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/",
+                 slug=None, project_name=None, pull_request_id=None):
+        self.checks_author = checks_author
+        self.rest_api_link = rest_api_link
+        self.slug = slug,
+        self.project_name = project_name
+        self.pull_request_id = pull_request_id
+        return 0
 
     def __init__(self, base_api_link, checked_file, username, passwd):
         """Args:
@@ -28,6 +35,7 @@ class SendResultsToPullRequestFiles(object):
         self.passwd = passwd
         self.base_api_link = base_api_link
         self.checked_file = checked_file
+        self.set_data()
 
     def generate_url(self):
         """This method is generate correct url for bitbucket api.
@@ -35,11 +43,25 @@ class SendResultsToPullRequestFiles(object):
         Returns:
             url (str): API URL for adding comments.
         """
-        slug = os.environ.get("SLUG", "TEST_KEY")
-        project_name = os.environ.get("PROJECT", "TEST_REPO")
-        pull_request_id = os.environ.get("PR_ID", "TEST_ID")
+        if self.slug is None:
+            log("Slug is not provided to class, trying to get it from environment variable.")
+            slug = os.environ.get("SLUG", "TEST_KEY")
+        else:
+            slug = self.slug
 
-        url = self.base_api_link + SendResultsToPullRequestFiles.rest_api_link
+        if self.project_name is None:
+            log("Project name is not provided to class, trying to get it from environment variable.")
+            project_name = os.environ.get("PROJECT", "TEST_REPO")
+        else:
+            project_name = self.project_name
+
+        if self.pull_request_id is None:
+            log("Pull request ID is not provided to class, trying to get it from environment variable.")
+            pull_request_id = os.environ.get("PR_ID", "TEST_ID")
+        else:
+            pull_request_id = self.pull_request_id
+
+        url = self.base_api_link + self.rest_api_link
         url = url.replace('{SLUG}', slug)
         url = url.replace('{PROJECT}', project_name)
         url = url.replace('{PRI}', pull_request_id)
@@ -64,36 +86,44 @@ class SendResultsToPullRequestFiles(object):
             content (str): Respond's payload.
             code (int): Response's code.
         """
+        result = (-1, 'Unknown error.')
         build_link = os.environ.get("BUILD_URL", "http://jenkins.test")
         text = ''
-        for key in results.iterkeys():
-            text += "{0} {1}".format(key, results[key])
-        text += " You can find details via link {}".format(build_link)
-
-        # Get result into temp variable, and check.
-        temp = self.check_comments_from_specific_author(SendResultsToPullRequestFiles.checks_author)
-
-        # if result is None, then we need to Post comment,
-        # if result is Not none, then we need to PUT comment.
-        if temp is None:
-            url = self.generate_url()
-            payload = {"text": text, "anchor": {"path": self.checked_file}}
-            content, code = self.send_post_request(url, payload)
+        try:
+            for key in results.iterkeys():
+                text += "{0} {1}".format(key, results[key])
+        except Exception as e:
+            log("Error while generating comment message: {}".format(e))
         else:
-            # And to PUT we need to pass additional parameters:
-            # id of existing comment and it's version.
-            id, version = temp
-            url = self.generate_url()
-            self.base_api_link = '{0}/{1}'.format(url, id)
-            payload = {
-                "version": version,
-                "text": text,
-                "anchor": {
-                    "path": self.checked_file
+            text += " You can find details via link {}".format(build_link)
+
+            # Get result into temp variable, and check.
+            code, message = self.check_comments_from_specific_author(self.checks_author)
+
+            # if result is None, then we need to Post comment,
+            # if result is Not none, then we need to PUT comment.
+            if code != 0:
+                result = (-1, message)
+            elif code == 0 and not message:
+                url = self.generate_url()
+                payload = {"text": text, "anchor": {"path": self.checked_file}}
+                result = self.send_post_request(url, payload)
+            elif code == 0 and message:
+                # And to PUT we need to pass additional parameters:
+                # id of existing comment and it's version.
+                url = self.generate_url()
+                comment_id, comment_version = message
+                self.base_api_link = '{0}/{1}'.format(url, comment_id)
+                payload = {
+                    "version": comment_version,
+                    "text": text,
+                    "anchor": {
+                        "path": self.checked_file
+                    }
                 }
-            }
-            content, code = self.send_put_request(self.base_api_link, payload)
-        return content, code
+                result = self.send_put_request(self.base_api_link, payload)
+        finally:
+            return result
 
     def check_comments_from_specific_author(self, author):
         """Method searches for comments from specific author.
@@ -108,34 +138,44 @@ class SendResultsToPullRequestFiles(object):
             errors.
         """
         log('Searching comments from {}'.format(author))
-        result = None
-        comments = self.get_all_comments_for_file()
-        if comments == 'Error':
-            result = 'Error'
-        else:
+        result, comment_id_version = None, False
+        code, message = self.get_all_comments_for_file()
+        if code == -1:
+            result = (-1, message)
+        elif code == 0:
+            comments = message
             for comment in comments:
-                if comment["author"]["name"] == author:
-                    comment_id = (comment["id"], comment["version"])
-                    result = comment_id
-                    log('Found comment for file {0} by author {1}'.format(self.checked_file, author))
-                    break
+                try:
+                    if comment["author"]["name"] == author:
+                        comment_id_version = (comment["id"], comment["version"])
+                        log('Found comment for file {0} by author {1} with ID {}.'.format(self.checked_file, author,
+                                                                                          comment_id_version))
+                        break
+                except Exception as e:
+                    log('Error occured while processing with comments to file {0}: {1}'.format(self.checked_file, e))
+                    result = (-1, e)
+                else:
+                    if comment_id_version:
+                        result = (0, comment_id_version)
         return result
 
     def get_all_comments_for_file(self):
-        """Method for collectiong all comments for specific file.
+        """Method for collecting all comments for specific file.
 
         Returns:
             result (dict of str): dictionary with comments.
         """
         payload = {'path': self.checked_file}
         url = self.generate_url()
-        content, code = self.send_get_request(url, payload)
-        response = json.loads(content)
+        code, message = self.send_get_request(url, payload)
 
         if code in [200, 204]:
-            result = response["values"]
+            response = json.loads(message)
+            result = (0, response["values"])
+        elif code == -1:
+            result = (-1, message)
         else:
-            result = 'Error'
+            result = (-1, 'Unknown error.')
         return result
 
     def send_post_request(self, url, payload):
@@ -149,12 +189,17 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        result = (-1, "Unknown error.")
         log('POST request: url: {0}, payload: {1}'.format(url, payload))
-        result = requests.post(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
-                               auth=HTTPBasicAuth(self.username, self.passwd))
-
-        log('POST respond: status: {0}, content: {1}'.format(result.status_code, result.content))
-        return result.content, result.status_code
+        try:
+            response = requests.post(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
+                                     auth=HTTPBasicAuth(self.username, self.passwd))
+        except Exception as e:
+            log("Error occurred while sending POST requeset: {}".format(e))
+        else:
+            log('POST respond: status: {0}, content: {1}'.format(response.status_code, response.content))
+            result = response.status_code, response.content
+        return result
 
     def send_put_request(self, url, payload):
         """Sends put request with spec header.
@@ -167,11 +212,19 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        result = (-1, "Unknown error.")
         log('PUT request: url: {0}, payload: {1}'.format(url, payload))
-        result = requests.put(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
-                              auth=HTTPBasicAuth(self.username, self.passwd))
-        log('PUT respond: staus: {0}, content: {1}'.format(result.status_code, result.content))
-        return result.content, result.status_code
+        try:
+            response = requests.put(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
+                                    auth=HTTPBasicAuth(self.username, self.passwd))
+        except Exception as e:
+            log("Error occurred while sending PUT request: {}".format(e))
+            result = (-1, e)
+        else:
+            log('PUT respond: staus: {0}, content: {1}'.format(response.status_code, response.content))
+            result = (response.status_code, response.content)
+        finally:
+            return result
 
     def send_get_request(self, url, payload):
         """Sends get request with spec header.
@@ -184,11 +237,19 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        result = (-1, "Unknown error.")
         log('GET request: url: {0}, payload: {1}'.format(url, payload))
-        result = requests.get(url, params=payload, headers={"X-Atlassian-Token": "no-check"},
-                              auth=HTTPBasicAuth(self.username, self.passwd))
-        log('GET respond: staus: {0}, content: {1}'.format(result.status_code, result.content))
-        return result.content, result.status_code
+        try:
+            response = requests.get(url, params=payload, headers={"X-Atlassian-Token": "no-check"},
+                                    auth=HTTPBasicAuth(self.username, self.passwd))
+        except Exception as e:
+            log('Error occurred while sending GET request: {}'.format(e))
+            result = (-1, e)
+        else:
+            log('GET respond: staus: {0}, content: {1}'.format(response.status_code, response.content))
+            result = (response.status_code, response.content)
+        finally:
+            return result
 
 
 if __name__ == '__main__':
