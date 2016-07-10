@@ -2,7 +2,7 @@
 import json
 import os
 
-import jbi_exceptions
+import jecket_exceptions
 from jbi_logger import log
 from pull_request_file_comments import SendResultsToPullRequestFiles
 
@@ -78,6 +78,6 @@ class PullRequestCommits(SendResultsToPullRequestFiles):
             commits = json.loads(message)
             result = [commit['id'] for commit in commits['values']]
         else:
-            raise jbi_exceptions.IncorrectJsonException(status=code, url=url,
-                                                        json=message)
+            raise jecket_exceptions.IncorrectJsonException(status=code, url=url,
+                                                           json=message)
         return result
