@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from subprocess import Popen, PIPE
 import sys
@@ -209,12 +210,13 @@ def commit_files_handler(commit_id, required_extension):
 def main():
     pr = PullRequestCommits(base_api_link=base_api_link, username=user, passwd=passwd)
     commit_list = pr.get_commits()
-    log('List of commits for pull request received: {}'.format(commit_list))
+    logger.debug('List of commits for pull request received: {}'.format(commit_list))
 
     for commit_id in commit_list:
-        log('Processing commit ID {}'.format(commit_id))
+        logger.info('Processing commit ID {}'.format(commit_id))
         commit_files_handler(commit_id, sys.argv[1])
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger(__name__)
     main()
