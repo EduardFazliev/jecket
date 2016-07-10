@@ -1,7 +1,10 @@
 import logging
 import os
-
-from conf import base_api_link, user, passwd
+try:
+    from conf import base_api_link, user, passwd
+except Exception as e:
+    import jecket_exceptions
+    raise  jecket_exceptions.IncorrectConfigFileException(e)
 from pull_request_main_comments_section import SendResultsToPullRequest
 
 

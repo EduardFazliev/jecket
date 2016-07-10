@@ -131,6 +131,69 @@ def count_lines(filename):
     return i + 1
 
 
+def java_file_handler(changed_file):
+    # PMD check: #####
+
+    pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
+    cmd = (
+        'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
+            .format(changed_file, pmd_rules)
+    )
+
+    # XML tag for violations
+    violations = '</violation>'
+    pmd_count = static_check_java(changed_file, cmd, violations, 'pmd')
+    log('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
+
+    # Checkstyle_check #####
+    checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './google_checks.xml')
+    cmd = (
+        'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'
+            .format(changed_file, checkstyle_rules)
+    )
+    violations = '<error'
+    checkstyle_count = static_check_java(changed_file, cmd, violations, 'checkstyle')
+    log('Checkstyle count for file {0}: {1}'.format(changed_file,
+                                                    checkstyle_count))
+    # Aggregating results:
+    result = {
+        'PMD errors: ': pmd_count,
+        'Checkstyle errors: ': checkstyle_count
+    }
+
+    send_file_results(changed_file, result)
+
+
+def swift_file_handler(changed_file):
+    tailor_file = "tailor_{0}.json".format(changed_file.replace('/', '_'))
+    cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(changed_file, tailor_file)
+
+    tailor_count = static_check_swift(cmd, tailor_file)
+
+    if type(tailor_count) == tuple:
+        log('Error while tailoring file {0}: {1}'.format(changed_file, tailor_count[1]))
+    else:
+        log('Tailor results for file {0}: {1}'.format(changed_file, tailor_count))
+        tailor_message = (
+            'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
+                .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
+                        tailor_count['skipped'])
+        )
+        result = {'Tailor Swift reports:': tailor_message}
+        send_file_results(changed_file, result)
+
+
+def go_file_handler(changed_file):
+    report_file = '{0}.golint'.format(changed_file.replace('/', '_'))
+    cmd = 'golint -min_confidence 0.1 {0} > {1} 2>&1'.format(changed_file, report_file)
+    execute_linux_command(cmd)
+    golint_count = count_lines(report_file)
+    golint_message = 'Violations: '.format(golint_count)
+    log('GoLint message: {}'.format(golint_message))
+    result = {'GoLint reports:': golint_message}
+    send_file_results(changed_file, result)
+
+
 def commit_files_handler(commit_id, required_extension):
     # Here we will get list of files, that have been changed in this
     # commit, if command succeed.
@@ -147,68 +210,21 @@ def commit_files_handler(commit_id, required_extension):
         # Here is some hardcode, but it is really necessary,
         # trust me, I'm a drummer!
         if required_extension == '.java':
-            # PMD check: #####
-
-            pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
-            cmd = (
-                'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
-                .format(changed_file, pmd_rules)
-            )
-
-            # XML tag for violations
-            violations = '</violation>'
-            pmd_count = static_check_java(changed_file, cmd, violations, 'pmd')
-            log('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
-
-            # Checkstyle_check #####
-            checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './google_checks.xml')
-            cmd = (
-                'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'
-                .format(changed_file, checkstyle_rules)
-            )
-            violations = '<error'
-            checkstyle_count = static_check_java(changed_file, cmd, violations, 'checkstyle')
-            log('Checkstyle count for file {0}: {1}'.format(changed_file,
-                                                            checkstyle_count))
-            # Aggregating results:
-            result = {
-                'PMD errors: ': pmd_count,
-                'Checkstyle errors: ': checkstyle_count
-            }
-
-            send_file_results(changed_file, result)
-
+            java_file_handler(changed_file)
         elif required_extension == '.swift':
-            tailor_file = "tailor_{0}.json".format(changed_file.replace('/', '_'))
-            cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(changed_file, tailor_file)
-
-            tailor_count = static_check_swift(cmd, tailor_file)
-
-            if type(tailor_count) == tuple:
-                log('Error while tailoring file {0}: {1}'.format(changed_file, tailor_count[1]))
-            else:
-                log('Tailor results for file {0}: {1}'.format(changed_file, tailor_count))
-                tailor_message = (
-                    'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
-                    .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
-                            tailor_count['skipped'])
-                )
-                result = {'Tailor Swift reports:': tailor_message}
-                send_file_results(changed_file, result)
-
+            swift_file_handler(changed_file)
         elif required_extension == '.go':
-            report_file = '{0}.golint'.format(changed_file.replace('/', '_'))
-            cmd = 'golint -min_confidence 0.1 {0} > {1} 2>&1'.format(changed_file, report_file)
-            execute_linux_command(cmd)
-            golint_count = count_lines(report_file)
-            golint_message = 'Violations: '.format(golint_count)
-            log('GoLint message: {}'.format(golint_message))
-            result = {'GoLint reports:': golint_message}
-            send_file_results(changed_file, result)
+            go_file_handler(changed_file)
 
 
-def main():
+def check_single_file(ext, filename):
+    pass
+
+
+def check_pr(ext):
+    logger.info("Start checking pull-request...")
     pr = PullRequestCommits(base_api_link=base_api_link, username=user, passwd=passwd)
+    # Get list of commits SHA, that are in pull-request.
     commit_list = pr.get_commits()
     logger.debug('List of commits for pull request received: {}'.format(commit_list))
 
@@ -217,6 +233,20 @@ def main():
         commit_files_handler(commit_id, sys.argv[1])
 
 
+def check_all_project(ext):
+    pass
+
+
+def main(func, ext, filename=''):
+
+    if func == 'all':
+        check_all_project(ext)
+    elif func == 'pr':
+        check_pr(ext)
+    elif func == 'file':
+        check_single_file(ext, filename)
+
+
 if __name__ == '__main__':
     logger = logging.getLogger(__name__)
-    main()
+    pass
