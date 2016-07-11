@@ -211,7 +211,7 @@ def commit_files_handler(commit_id, required_extension):
             execute_linux_command(cmd)
             golint_count = count_lines(report_file)
             log('GoLint violations: {}'.format(golint_count))
-            golint_message = 'Violations: '.format(golint_count)
+            golint_message = 'Violations: {}'.format(golint_count)
             log('GoLint message: {}'.format(golint_message))
             result = {'GoLint reports:': golint_message}
             send_file_results(file, result)
