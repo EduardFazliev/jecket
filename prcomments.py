@@ -4,14 +4,14 @@ import os
 
 import jecket_exceptions
 from jbi_logger import log
-from pull_request_file_comments import SendResultsToPullRequestFiles
+from pull_request_file_comments import PRFile
 
 
-class SendResultsToPullRequest(SendResultsToPullRequestFiles):
+class PRState(PRFile):
     rest_api_link = '/rest/build-status/1.0/commits/'
 
     def __init__(self, base_api_link, username, passwd):
-        super(SendResultsToPullRequest, self).__init__(base_api_link, '', username, passwd)
+        super(PRState, self).__init__(base_api_link, '', username, passwd)
 
     def send_comment(self, comment):
         url = self.generate_url()
@@ -20,7 +20,7 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
 
     def send_build_status(self, state, key, url_to_build):
         commit_hash = os.environ.get("GIT_COMMIT", "TEST_HASH")
-        url = self.base_api_link + SendResultsToPullRequest.rest_api_link + commit_hash
+        url = self.base_api_link + PRState.rest_api_link + commit_hash
         log('Sending build status for commit {}.'.format(commit_hash))
         payload = {
             "state": state,
@@ -32,9 +32,9 @@ class SendResultsToPullRequest(SendResultsToPullRequestFiles):
         return (code, content)
 
 
-class PullRequestCommits(SendResultsToPullRequestFiles):
+class PRCommits(PRFile):
     def __init__(self, base_api_link, username, passwd):
-        super(PullRequestCommits, self).__init__(base_api_link, '', username, passwd)
+        super(PRCommits, self).__init__(base_api_link, '', username, passwd)
 
     def generate_url(self):
         """This method is generate correct url for bitbucket api.

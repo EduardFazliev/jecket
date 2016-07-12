@@ -4,6 +4,7 @@ import yaml
 
 import set_status
 import static_check
+import send_comment
 
 
 def invoke_set_status(args):
@@ -28,6 +29,13 @@ def invoke_static_check(args):
         print 'No source was provided for static check.'
 
 
+def invoke_send_pr_comment(args):
+    send_comment.main(args.comment)
+
+
+def invoke_set_conf(args):
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     # parser.add_argument("command", type=str, help="Command to execute, for example: set-status, send-comment")
@@ -41,6 +49,7 @@ def parse_args():
                                                                     "on bitbucket server.")
     parser_set_conf.add_argument("-p", "--password", type=str, help="Password for basic authorization "
                                                                     "on bitbucket server.")
+    parser_set_conf.set_defaults(invoke_set_conf)
 
     # Send static check result to files, that was changed in pull request.
     parser_static_check = subparsers.add_parser("static-check",
@@ -64,6 +73,10 @@ def parse_args():
     status_group.add_argument("-f", "--failed", action="store_true", help="Set status to FAILED.")
     status_group.add_argument("-p", "--in-progress", action="store_true", help="Set status to IN PROGRESS.")
     parser_set_status.set_defaults(func=invoke_set_status)
+
+    parser_send_pr_comment = subparsers.add_parser('send-pr-comment', help="Send comments to pull-request.")
+    parser_send_pr_comment.add_argument("-c", "--comment", type=str, help="Comment text.")
+    parser_send_pr_comment.set_defaults(func=invoke_send_pr_comment)
 
     args = parser.parse_args()
     args.func(args)

@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 
 import json
+import logging
 import os
 import requests
 from requests.auth import HTTPBasicAuth
 
-from jbi_logger import log
-
 
 # noinspection PyShadowingBuiltins
-class SendResultsToPullRequestFiles(object):
+class PRFile(object):
     """
     This class sends static checks results to pull request files.
     """
+    fake_build_url = "http://jenkins.test"
+
     def set_data(self, checks_author="jenkins",
                  rest_api_link="/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/",
                  slug=None, project_name=None, pull_request_id=None):
         self.checks_author = checks_author
         self.rest_api_link = rest_api_link
-        self.slug = slug,
+        self.slug = slug
         self.project_name = project_name
         self.pull_request_id = pull_request_id
         return 0
@@ -31,11 +32,16 @@ class SendResultsToPullRequestFiles(object):
             username (str): login for basic auth.
             passwd (str): password for basic auth.
         """
+
         self.username = username
         self.passwd = passwd
         self.base_api_link = base_api_link
         self.checked_file = checked_file
-        self.set_data()
+        self.checks_author = "jenkins"
+        self.rest_api_link = "/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/"
+        self.slug = None
+        self.project_name = None
+        self.pull_request_id = None
 
     def generate_url(self):
         """This method is generate correct url for bitbucket api.
@@ -44,23 +50,25 @@ class SendResultsToPullRequestFiles(object):
             url (str): API URL for adding comments.
         """
         if self.slug is None:
-            log("Slug is not provided to class, trying to get it from environment variable.")
+            logger.warinig("Slug is not provided to class, trying to get it from environment variable.")
             slug = os.environ.get("SLUG", "TEST_KEY")
         else:
             slug = self.slug
 
         if self.project_name is None:
-            log("Project name is not provided to class, trying to get it from environment variable.")
+            logger.warning("Project name is not provided to class, trying to get it from environment variable.")
             project_name = os.environ.get("PROJECT", "TEST_REPO")
         else:
             project_name = self.project_name
 
         if self.pull_request_id is None:
-            log("Pull request ID is not provided to class, trying to get it from environment variable.")
+            logger.warning("Pull request ID is not provided to class, trying to get it from environment variable.")
             pull_request_id = os.environ.get("PR_ID", "TEST_ID")
         else:
             pull_request_id = self.pull_request_id
 
+        logger.debug("Generating URL with parameters slug: {0}, project: {1}, "
+                     "pull request ID: {2}".format(slug, project_name, pull_request_id))
         url = self.base_api_link + self.rest_api_link
         url = url.replace('{SLUG}', slug)
         url = url.replace('{PROJECT}', project_name)
@@ -87,13 +95,14 @@ class SendResultsToPullRequestFiles(object):
             code (int): Response's code.
         """
         result = (-1, 'Unknown error.')
-        build_link = os.environ.get("BUILD_URL", "http://jenkins.test")
+
+        build_link = os.environ.get("BUILD_URL", PRFile.fake_build_url)
         text = ''
         try:
             for key in results.iterkeys():
                 text += "{0} {1}".format(key, results[key])
         except Exception as e:
-            log("Error while generating comment message: {}".format(e))
+            logger.error("Error while generating comment message: {}".format(e))
         else:
             text += " You can find details via link {}".format(build_link)
 
@@ -137,7 +146,7 @@ class SendResultsToPullRequestFiles(object):
             found comment or None if nothing is found and there is no
             errors.
         """
-        log('Searching comments from {}'.format(author))
+        logger.debug('Searching comments from {}'.format(author))
         result, comment_id_version = None, False
         code, message = self.get_all_comments_for_file()
         if code == -1:
@@ -148,11 +157,12 @@ class SendResultsToPullRequestFiles(object):
                 try:
                     if comment["author"]["name"] == author:
                         comment_id_version = (comment["id"], comment["version"])
-                        log('Found comment for file {0} by author {1} with ID {}.'.format(self.checked_file, author,
-                                                                                          comment_id_version))
+                        logger.debug('Found comment for file {0} by author {1} with ID {}.'
+                                     .format(self.checked_file, author, comment_id_version))
                         break
                 except Exception as e:
-                    log('Error occured while processing with comments to file {0}: {1}'.format(self.checked_file, e))
+                    logger.exception('Error occurred while processing with comments '
+                                     'to file {0}.'.format(self.checked_file))
                     result = (-1, e)
                 else:
                     if comment_id_version:
@@ -165,6 +175,7 @@ class SendResultsToPullRequestFiles(object):
         Returns:
             result (dict of str): dictionary with comments.
         """
+        logger.debug("Trying to get all comments for file {}...".format(self.checked_file))
         payload = {'path': self.checked_file}
         url = self.generate_url()
         code, message = self.send_get_request(url, payload)
@@ -172,10 +183,14 @@ class SendResultsToPullRequestFiles(object):
         if code in [200, 204]:
             response = json.loads(message)
             result = (0, response["values"])
+            logger.debug("Comments are successfully received.")
         elif code == -1:
             result = (-1, message)
+            logger.error("Error occurred while getting comment for file {0}. Error: {1}".format(self.checked_file,
+                                                                                                  message))
         else:
-            result = (-1, 'Unknown error.')
+            result = (-1, '{0}: {1}'.format(code, message))
+            logger.warning("Response is not 200 or 204. Code {0}: {1}".format(code, message))
         return result
 
     def send_post_request(self, url, payload):
@@ -189,16 +204,18 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        result = (-1, "Unknown error.")
-        log('POST request: url: {0}, payload: {1}'.format(url, payload))
+        result = (-42, "Unknown.")
+        logger.debug('POST request: url: {0}, payload: {1}'.format(url, payload))
         try:
             response = requests.post(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
                                      auth=HTTPBasicAuth(self.username, self.passwd))
         except Exception as e:
-            log("Error occurred while sending POST requeset: {}".format(e))
+            logger.exception("Error occurred while sending POST request.")
+            result = (-1, e)
         else:
-            log('POST respond: status: {0}, content: {1}'.format(response.status_code, response.content))
+            logger.debug('POST respond: status: {0}, content: {1}'.format(response.status_code, response.content))
             result = response.status_code, response.content
+
         return result
 
     def send_put_request(self, url, payload):
@@ -212,19 +229,18 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        result = (-1, "Unknown error.")
-        log('PUT request: url: {0}, payload: {1}'.format(url, payload))
+        result = (-42, "Unknown.")
+        logger.debug('PUT request: url: {0}, payload: {1}'.format(url, payload))
         try:
             response = requests.put(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
                                     auth=HTTPBasicAuth(self.username, self.passwd))
         except Exception as e:
-            log("Error occurred while sending PUT request: {}".format(e))
+            logger.exception("Error occurred while sending PUT request.")
             result = (-1, e)
         else:
-            log('PUT respond: staus: {0}, content: {1}'.format(response.status_code, response.content))
+            logger.debug('PUT respond: staus: {0}, content: {1}'.format(response.status_code, response.content))
             result = (response.status_code, response.content)
-        finally:
-            return result
+        return result
 
     def send_get_request(self, url, payload):
         """Sends get request with spec header.
@@ -237,20 +253,20 @@ class SendResultsToPullRequestFiles(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        result = (-1, "Unknown error.")
-        log('GET request: url: {0}, payload: {1}'.format(url, payload))
+        result = (-42, "Unknown.")
+        logger.debug('GET request: url: {0}, payload: {1}'.format(url, payload))
         try:
             response = requests.get(url, params=payload, headers={"X-Atlassian-Token": "no-check"},
                                     auth=HTTPBasicAuth(self.username, self.passwd))
         except Exception as e:
-            log('Error occurred while sending GET request: {}'.format(e))
+            logger.exception("Error occurred while sending GET request.")
             result = (-1, e)
         else:
-            log('GET respond: staus: {0}, content: {1}'.format(response.status_code, response.content))
+            logger.debug('GET respond: status: {0}, content: {1}'.format(response.status_code, response.content))
             result = (response.status_code, response.content)
-        finally:
-            return result
+        return result
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger(__name__)
     pass

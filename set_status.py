@@ -4,13 +4,13 @@ try:
     from conf import base_api_link, user, passwd
 except Exception as e:
     import jecket_exceptions
-    raise  jecket_exceptions.IncorrectConfigFileException(e)
-from pull_request_main_comments_section import SendResultsToPullRequest
+    raise jecket_exceptions.IncorrectConfigFileException(e)
+from prcomments import PRState
 
 
 def main(status):
     logging.getLogger(__name__)
-    pr = SendResultsToPullRequest(base_api_link=base_api_link, username=user, passwd=passwd)
+    pr = PRState(base_api_link=base_api_link, username=user, passwd=passwd)
     key = os.environ.get("JOB_NAME", "Custom BUILD_TAG")
     url = os.environ.get("BUILD_URL", "http://custombuildurl.com")
     logging.debug('Pull Request status:{0}, key:{1}, url:{2}'.format(status, key, url))

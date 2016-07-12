@@ -6,22 +6,22 @@ import sys
 
 from conf import base_api_link, user, passwd
 from jbi_logger import log
-from pull_request_file_comments import SendResultsToPullRequestFiles
-from pull_request_main_comments_section import PullRequestCommits
+from pull_request_file_comments import PRFile
+from prcomments import PRCommits
 
 
 def execute_linux_command(cmd):
     result = (-1, 'Unknown Error.')
-    log('Executing command {}'.format(cmd))
+    logger.debug('Executing command {}'.format(cmd))
     try:
         proc = Popen(cmd, stderr=PIPE, stdout=PIPE, shell=True)
         out, err = proc.communicate()
         code = proc.returncode
     except Exception as e:
-        log('Error occurred while executing command {}: {}'.format(cmd, e))
+        logger.exception('Error occurred while executing command {}.'.format(cmd))
         result = (-1, e)
     else:
-        log('Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
+        logger.debug('Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
         if code != 0:
             result = (code, err)
         elif code == 0:
@@ -44,11 +44,13 @@ def send_file_results(target_file, results):
                 error_value (int): Number of errors if this type.
             }
     """
-    log('Sending results for file {}.'.format(target_file))
-    file_comments = SendResultsToPullRequestFiles(base_api_link=base_api_link, checked_file=target_file, username=user,
-                                                  passwd=passwd)
+    logger.debug('Sending results for file {}.'.format(target_file))
+    file_comments = PRFile(base_api_link=base_api_link, checked_file=target_file, username=user,
+                           passwd=passwd)
     code, message = file_comments.send_static_check_results(results)
-    log('Sending results finished. Output: code: {0}, content: {1}'.format(code, message))
+    logger.info("Sending results finished.")
+    logger.debug("Sending results finished. Output: code: {0}, content: {1}".format(code, message))
+    return code, message
 
 
 def static_check_java(file_to_check, cmd, report_flag, check_type):
@@ -66,7 +68,7 @@ def static_check_java(file_to_check, cmd, report_flag, check_type):
         count = (-1, 'Error while executing static check: {}'.format(result))
     else:
         i = 0
-        log('Trying to count errors in file {0}_{1}.xml'.format(file_to_check, check_type))
+        logger.debug('Trying to count errors in file {0}_{1}.xml'.format(file_to_check, check_type))
         with open('{0}_{1}.xml'.format(file_to_check, check_type), 'r') as f:
             for line in f:
                 if report_flag in line:
@@ -102,22 +104,22 @@ def static_check_swift(cmd, result_file):
     if code != 0:
         count = (-1, 'Error while executing static check: {}'.format(result))
     else:
-        log('Trying to count errors in file {}'.format(result_file))
+        logger.debug('Trying to count errors in file {}'.format(result_file))
         try:
             with open(result_file, 'r') as f:
                 result_json = f.read().replace('\n', '')
         except IOError as e:
-            log('Error while processing file {0}: {1}'.format(result_file, e))
+            logger.debug('Error while processing file {0}: {1}'.format(result_file, e))
             count = (-1, e)
         else:
             try:
                 report = json.loads(result_json)
             except ValueError as e:
-                log('JSON loads operation is ended with error: {0}'.format(e))
+                logger.debug('JSON loads operation is ended with error: {0}'.format(e))
                 count = (-1, e)
             else:
                 count = report['summary']
-                log('Tailor summary: {0}'.format(count))
+                logger.debug('Tailor summary: {0}'.format(count))
 
     return count
 
@@ -127,7 +129,7 @@ def count_lines(filename):
     with open(filename) as f:
         for i, _ in enumerate(f):
             pass
-        log('File line enumerate counter result: {}'.format(i))
+        logger.debug('File line enumerate counter result: {}'.format(i))
     return i + 1
 
 
@@ -137,23 +139,21 @@ def java_file_handler(changed_file):
     pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
     cmd = (
         'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
-            .format(changed_file, pmd_rules)
+        .format(changed_file, pmd_rules)
     )
 
     # XML tag for violations
     violations = '</violation>'
     pmd_count = static_check_java(changed_file, cmd, violations, 'pmd')
-    log('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
+    logger.debug('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
 
     # Checkstyle_check #####
     checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './google_checks.xml')
-    cmd = (
-        'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'
-            .format(changed_file, checkstyle_rules)
-    )
+    cmd = 'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'.format(changed_file, checkstyle_rules)
+
     violations = '<error'
     checkstyle_count = static_check_java(changed_file, cmd, violations, 'checkstyle')
-    log('Checkstyle count for file {0}: {1}'.format(changed_file,
+    logger.debug('Checkstyle count for file {0}: {1}'.format(changed_file,
                                                     checkstyle_count))
     # Aggregating results:
     result = {
@@ -161,7 +161,8 @@ def java_file_handler(changed_file):
         'Checkstyle errors: ': checkstyle_count
     }
 
-    send_file_results(changed_file, result)
+    code, message = send_file_results(changed_file, result)
+    return code, message
 
 
 def swift_file_handler(changed_file):
@@ -171,16 +172,18 @@ def swift_file_handler(changed_file):
     tailor_count = static_check_swift(cmd, tailor_file)
 
     if type(tailor_count) == tuple:
-        log('Error while tailoring file {0}: {1}'.format(changed_file, tailor_count[1]))
+        logger.debug('Error while tailoring file {0}: {1}'.format(changed_file, tailor_count[1]))
+        code, message = (-1, tailor_count[1])
     else:
-        log('Tailor results for file {0}: {1}'.format(changed_file, tailor_count))
+        logger.debug('Tailor results for file {0}: {1}'.format(changed_file, tailor_count))
         tailor_message = (
             'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
-                .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
-                        tailor_count['skipped'])
+            .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
+                    tailor_count['skipped'])
         )
         result = {'Tailor Swift reports:': tailor_message}
-        send_file_results(changed_file, result)
+        code, message = send_file_results(changed_file, result)
+    return code, message
 
 
 def go_file_handler(changed_file):
@@ -189,52 +192,58 @@ def go_file_handler(changed_file):
     execute_linux_command(cmd)
     golint_count = count_lines(report_file)
     golint_message = 'Violations: '.format(golint_count)
-    log('GoLint message: {}'.format(golint_message))
+    logger.debug('GoLint message: {}'.format(golint_message))
     result = {'GoLint reports:': golint_message}
-    send_file_results(changed_file, result)
+    code, message = send_file_results(changed_file, result)
+    return code, message
 
 
-def commit_files_handler(commit_id, required_extension):
-    # Here we will get list of files, that have been changed in this
-    # commit, if command succeed.
-    cmd = 'git diff-tree --no-commit-id --name-only -r {}'.format(commit_id)
-    code, out = execute_linux_command(cmd)
-    log('List of files changed in commit received: {}'.format(out))
-    # Generate list of files
-    changed_files = [changed_file for changed_file in out.split('\n')]
-    for changed_file in changed_files:
-        # If file is not required type, then go to next file.
-        if not changed_file or required_extension not in changed_file:
-            continue
-        log('Checking file {}'.format(changed_file))
+def file_handler(checked_file, required_extension):
+    # If file is not required type, then go to next file.
+    result = (-42, "Unknown.")
+    if not checked_file or required_extension not in checked_file:
+        result = (0, 'Not checked.')
+    else:
+        logger.debug('Checking file {}'.format(checked_file))
         # Here is some hardcode, but it is really necessary,
         # trust me, I'm a drummer!
         if required_extension == '.java':
-            java_file_handler(changed_file)
+            result = java_file_handler(checked_file)
         elif required_extension == '.swift':
-            swift_file_handler(changed_file)
+            result = swift_file_handler(checked_file)
         elif required_extension == '.go':
-            go_file_handler(changed_file)
+            result = go_file_handler(checked_file)
+    return result
 
 
 def check_single_file(ext, filename):
-    pass
+    file_handler(filename, ext)
 
 
 def check_pr(ext):
     logger.info("Start checking pull-request...")
-    pr = PullRequestCommits(base_api_link=base_api_link, username=user, passwd=passwd)
+    pr = PRCommits(base_api_link=base_api_link, username=user, passwd=passwd)
     # Get list of commits SHA, that are in pull-request.
     commit_list = pr.get_commits()
     logger.debug('List of commits for pull request received: {}'.format(commit_list))
 
     for commit_id in commit_list:
         logger.info('Processing commit ID {}'.format(commit_id))
-        commit_files_handler(commit_id, sys.argv[1])
+
+    # Here we will get list of files, that have been changed in this
+    # commit, if command succeed.
+    cmd = 'git diff-tree --no-commit-id --name-only -r {}'.format(commit_id)
+    code, out = execute_linux_command(cmd)
+    logger.debug('List of files changed in commit received: {}'.format(out))
+    # Generate list of files
+    changed_files = [changed_file for changed_file in out.split('\n')]
+
+    for changed_file in changed_files:
+        file_handler(changed_file, ext)
 
 
 def check_all_project(ext):
-    pass
+    print "Check all project in a pull-request? Why would you do that?"
 
 
 def main(func, ext, filename=''):
