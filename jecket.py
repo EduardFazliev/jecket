@@ -34,6 +34,7 @@ def invoke_send_pr_comment(args):
 
 
 def invoke_set_conf(args):
+    pass
 
 
 def parse_args():
