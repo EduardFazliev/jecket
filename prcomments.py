@@ -3,9 +3,10 @@ import json
 import os
 
 import jecket_exceptions
-from jbi_logger import log
-from pull_request_file_comments import PRFile
+from prfile import PRFile
+import logging
 
+logger = logging.getLogger(__name__)
 
 class PRState(PRFile):
     rest_api_link = '/rest/build-status/1.0/commits/'
@@ -21,14 +22,14 @@ class PRState(PRFile):
     def send_build_status(self, state, key, url_to_build):
         commit_hash = os.environ.get("GIT_COMMIT", "TEST_HASH")
         url = self.base_api_link + PRState.rest_api_link + commit_hash
-        log('Sending build status for commit {}.'.format(commit_hash))
+        logger.info('Sending build status for commit {}.'.format(commit_hash))
         payload = {
             "state": state,
             "key": key,
             "url": url_to_build
         }
         code, content = self.send_post_request(url, payload)
-        log('Sending finished. Result: status - {0}, content - {1}.'.format(code, content))
+        logger.info('Sending finished. Result: status - {0}, content - {1}.'.format(code, content))
         return (code, content)
 
 
@@ -43,19 +44,19 @@ class PRCommits(PRFile):
             url (str): api url for adding comments.
         """
         if self.slug is None:
-            log("Slug is not provided to class, trying to get it from environment variable.")
+            logger.info("Slug is not provided to class, trying to get it from environment variable.")
             slug = os.environ.get("SLUG", "TEST_KEY")
         else:
             slug = self.slug
 
         if self.project_name is None:
-            log("Project name is not provided to class, trying to get it from environment variable.")
+            logger.info("Project name is not provided to class, trying to get it from environment variable.")
             project_name = os.environ.get("PROJECT", "TEST_REPO")
         else:
             project_name = self.project_name
 
         if self.pull_request_id is None:
-            log("Pull request ID is not provided to class, trying to get it from environment variable.")
+            logger.info("Pull request ID is not provided to class, trying to get it from environment variable.")
             pull_request_id = os.environ.get("PR_ID", "TEST_ID")
         else:
             pull_request_id = self.pull_request_id
@@ -67,7 +68,7 @@ class PRCommits(PRFile):
         if url[-1] != '/':
             url += '/'
         url = '{0}commits'.format(url)
-        log('URL generated: {}'.format(url))
+        logger.info('URL generated: {}'.format(url))
         return url
 
     def get_commits(self):

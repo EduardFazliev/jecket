@@ -5,9 +5,11 @@ from subprocess import Popen, PIPE
 import sys
 
 from conf import base_api_link, user, passwd
-from jbi_logger import log
-from pull_request_file_comments import PRFile
+# from jbi_logger import log
+from prfile import PRFile
 from prcomments import PRCommits
+
+logger = logging.getLogger(__name__)
 
 
 def execute_linux_command(cmd):
@@ -139,7 +141,7 @@ def java_file_handler(changed_file):
     pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
     cmd = (
         'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
-        .format(changed_file, pmd_rules)
+            .format(changed_file, pmd_rules)
     )
 
     # XML tag for violations
@@ -154,7 +156,7 @@ def java_file_handler(changed_file):
     violations = '<error'
     checkstyle_count = static_check_java(changed_file, cmd, violations, 'checkstyle')
     logger.debug('Checkstyle count for file {0}: {1}'.format(changed_file,
-                                                    checkstyle_count))
+                                                             checkstyle_count))
     # Aggregating results:
     result = {
         'PMD errors: ': pmd_count,
@@ -178,8 +180,8 @@ def swift_file_handler(changed_file):
         logger.debug('Tailor results for file {0}: {1}'.format(changed_file, tailor_count))
         tailor_message = (
             'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
-            .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
-                    tailor_count['skipped'])
+                .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
+                        tailor_count['skipped'])
         )
         result = {'Tailor Swift reports:': tailor_message}
         code, message = send_file_results(changed_file, result)
@@ -247,7 +249,6 @@ def check_all_project(ext):
 
 
 def main(func, ext, filename=''):
-
     if func == 'all':
         check_all_project(ext)
     elif func == 'pr':
@@ -257,5 +258,4 @@ def main(func, ext, filename=''):
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
     pass

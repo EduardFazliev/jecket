@@ -6,7 +6,7 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 
-
+logger = logging.getLogger(__name__)
 # noinspection PyShadowingBuiltins
 class PRFile(object):
     """
@@ -50,7 +50,7 @@ class PRFile(object):
             url (str): API URL for adding comments.
         """
         if self.slug is None:
-            logger.warinig("Slug is not provided to class, trying to get it from environment variable.")
+            logger.warning("Slug is not provided to class, trying to get it from environment variable.")
             slug = os.environ.get("SLUG", "TEST_KEY")
         else:
             slug = self.slug

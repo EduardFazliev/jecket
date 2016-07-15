@@ -2,9 +2,11 @@ import argparse
 import logging.config
 import yaml
 
+import set_conf
 import set_status
 import static_check
 import send_comment
+
 
 
 def invoke_set_status(args):
@@ -16,6 +18,8 @@ def invoke_set_status(args):
         set_status.main("FAILED")
     elif args.in_progress:
         set_status.main("INPROGRESS")
+    else:
+        print 'No status argument was provided.'
 
 
 def invoke_static_check(args):
@@ -34,8 +38,11 @@ def invoke_send_pr_comment(args):
 
 
 def invoke_set_conf(args):
-    pass
 
+    if args.base_link is None and args.username is None and args.password is None:
+        print 'No data given.'
+    else:
+        set_conf.main(args)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -50,7 +57,7 @@ def parse_args():
                                                                     "on bitbucket server.")
     parser_set_conf.add_argument("-p", "--password", type=str, help="Password for basic authorization "
                                                                     "on bitbucket server.")
-    parser_set_conf.set_defaults(invoke_set_conf)
+    parser_set_conf.set_defaults(func=invoke_set_conf)
 
     # Send static check result to files, that was changed in pull request.
     parser_static_check = subparsers.add_parser("static-check",
