@@ -2,11 +2,10 @@ import argparse
 import logging.config
 import yaml
 
+import send_comment
 import set_conf
 import set_status
 import static_check
-import send_comment
-
 
 
 def invoke_set_status(args):
@@ -38,11 +37,10 @@ def invoke_send_pr_comment(args):
 
 
 def invoke_set_conf(args):
-
-    if args.base_link is None and args.username is None and args.password is None:
-        print 'No data given.'
-    else:
-        set_conf.main(args)
+	if all([args.base_link, args.username, args.password]) == False:
+		print 'No data given.'
+	else:
+		set_conf.main(args)
 
 def parse_args():
     parser = argparse.ArgumentParser()

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import json
+import logging
 import os
 
 import jecket_exceptions
 from prfile import PRFile
-import logging
+
 
 logger = logging.getLogger(__name__)
 

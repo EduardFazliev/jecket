@@ -1,12 +1,14 @@
-import logging
 import os.path
+import logging
 
+
+conf_file = 'conf.py'
 
 def main(args):
     logger = logging.getLogger(__name__)
 
     #if not os.path.isfile('conf.py'):
-    with open('conf.py','w') as f:
+    with open(conf_file,'w') as f:
         if args.base_link is not None:
                   f.write('base_api_link = "{0}"\n'.format(args.base_link))
         else: 
@@ -30,4 +32,5 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main()
+	main()
+

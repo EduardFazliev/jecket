@@ -5,12 +5,11 @@ from subprocess import Popen, PIPE
 import sys
 
 from conf import base_api_link, user, passwd
-# from jbi_logger import log
-from prfile import PRFile
 from prcomments import PRCommits
+from prfile import PRFile
+
 
 logger = logging.getLogger(__name__)
-
 
 def execute_linux_command(cmd):
     result = (-1, 'Unknown Error.')
