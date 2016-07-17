@@ -1,36 +1,25 @@
-import os.path
-import logging
-
-
 conf_file = 'conf.py'
+conf_example = 'conf.py_example'
+
+try:
+    import conf
+    assert conf
+except ImportError as e:
+    with open(conf_example, 'r') as f:
+        with open(conf_file, 'w') as f1:
+            for line in f:
+                f1.write(line)
+    print 'Config file is missing. Generic configuration created.'
+
 
 def main(args):
-    logger = logging.getLogger(__name__)
-
-    #if not os.path.isfile('conf.py'):
-    with open(conf_file,'w') as f:
-        if args.base_link is not None:
-                  f.write('base_api_link = "{0}"\n'.format(args.base_link))
-        else: 
-				print ('Baselink is not defined')
-				f.write('base_api_link = ""\n')
-        if args.username is not None:
-                f.write('user = "{0}"\n'.format(args.username))
-        else:
-				print ('Username is not defined')
-				f.write('user = ""\n')
-        if args.password is not None:
-                f.write('passwd = "{0}"\n'.format(args.password))
-        else:
-				print ('Password is not defined')
-				f.write('passwd = ""\n')
-        print('Configuration file has been created.')
-    #else: logger.info('The file already exists!')
-
-
-
+    with open(conf_file, 'w') as f:
+        f.write('base_api_link = "{0}"\n'
+                'user = "{1}"\n'
+                'passwd = "{2}"\n'.format(args.base_link,
+                                          args.username, args.password))
+    print('Configuration file has been created.')
 
 
 if __name__ == '__main__':
-	main()
-
+    main()

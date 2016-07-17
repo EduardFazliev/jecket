@@ -8,6 +8,8 @@ from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
 # noinspection PyShadowingBuiltins
+
+
 class PRFile(object):
     """
     This class sends static checks results to pull request files.

@@ -1,10 +1,7 @@
 import logging
 import os
-try:
-    from conf import base_api_link, user, passwd
-except Exception as e:
-    import jecket_exceptions
-    raise jecket_exceptions.IncorrectConfigFileException(e)
+
+from conf import base_api_link, user, passwd
 from prcomments import PRState
 
 
