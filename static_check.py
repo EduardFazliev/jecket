@@ -24,12 +24,10 @@ def execute_linux_command(cmd):
         out, err = proc.communicate()
         code = proc.returncode
     except Exception as e:
-        logger.exception(
-            'Error occurred while executing command {}.'.format(cmd))
+        logger.exception('Error occurred while executing command {}.'.format(cmd))
         result = (-1, e)
     else:
-        logger.debug(
-            'Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
+        logger.debug('Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
         if code != 0:
             result = (code, err)
         elif code == 0:
@@ -263,6 +261,8 @@ def file_handler(checked_file, required_extension):
             result = swift_file_handler(checked_file)
         elif required_extension == '.go':
             result = go_file_handler(checked_file)
+        else:
+            result = (0, 'Not checked. Unsupported extension.')
     return result
 
 
@@ -310,6 +310,7 @@ def check_all_project(ext):
 
 
 def main(func, ext, filename=''):
+    logging.getLogger(__name__)
     if func == 'all':
         check_all_project(ext)
     elif func == 'pr':
@@ -319,4 +320,4 @@ def main(func, ext, filename=''):
 
 
 if __name__ == '__main__':
-    pass
+    main()

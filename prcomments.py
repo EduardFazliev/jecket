@@ -50,9 +50,7 @@ class PRState(PRFile):
             "url": url_to_build
         }
         code, content = self.send_post_request(url, payload)
-        logger.info(
-            'Sending finished. Result: status - {0}, content - {1}.'.format(
-                code, content))
+        logger.info('Sending finished. Result: status - {0}, content - {1}.'.format(code, content))
         return (code, content)
 
 
@@ -67,22 +65,19 @@ class PRCommits(PRFile):
             url (str): api url for adding comments.
         """
         if self.slug is None:
-            logger.info(
-                "Slug is not provided to class, trying to get it from environment variable.")
+            logger.info("Slug is not provided to class, trying to get it from environment variable.")
             slug = os.environ.get("SLUG", "TEST_KEY")
         else:
             slug = self.slug
 
         if self.project_name is None:
-            logger.info(
-                "Project name is not provided to class, trying to get it from environment variable.")
+            logger.info("Project name is not provided to class, trying to get it from environment variable.")
             project_name = os.environ.get("PROJECT", "TEST_REPO")
         else:
             project_name = self.project_name
 
         if self.pull_request_id is None:
-            logger.info(
-                "Pull request ID is not provided to class, trying to get it from environment variable.")
+            logger.info("Pull request ID is not provided to class, trying to get it from environment variable.")
             pull_request_id = os.environ.get("PR_ID", "TEST_ID")
         else:
             pull_request_id = self.pull_request_id
@@ -111,7 +106,6 @@ class PRCommits(PRFile):
             commits = json.loads(message)
             result = [commit['id'] for commit in commits['values']]
         else:
-            raise jecket_exceptions.IncorrectJsonException(status=code,
-                                                           url=url,
+            raise jecket_exceptions.IncorrectJsonException(status=code, url=url,
                                                            json=message)
         return result

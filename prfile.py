@@ -189,7 +189,7 @@ class PRFile(object):
         elif code == -1:
             result = (-1, message)
             logger.error("Error occurred while getting comment for file {0}. Error: {1}".format(self.checked_file,
-                                                                                                  message))
+                                                                                                message))
         else:
             result = (-1, '{0}: {1}'.format(code, message))
             logger.warning("Response is not 200 or 204. Code {0}: {1}".format(code, message))
