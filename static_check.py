@@ -2,15 +2,21 @@ import json
 import logging
 import os
 from subprocess import Popen, PIPE
-import sys
 
 from conf import base_api_link, user, passwd
-from jbi_logger import log
-from pull_request_file_comments import PRFile
 from prcomments import PRCommits
+from prfile import PRFile
+
+logger = logging.getLogger(__name__)
 
 
 def execute_linux_command(cmd):
+    """The function creates a subprocess to execute linux command, then
+    returns the execution code and the result.
+
+    Args:
+        cmd: shell command
+    """
     result = (-1, 'Unknown Error.')
     logger.debug('Executing command {}'.format(cmd))
     try:
@@ -45,11 +51,14 @@ def send_file_results(target_file, results):
             }
     """
     logger.debug('Sending results for file {}.'.format(target_file))
-    file_comments = PRFile(base_api_link=base_api_link, checked_file=target_file, username=user,
+    file_comments = PRFile(base_api_link=base_api_link,
+                           checked_file=target_file, username=user,
                            passwd=passwd)
     code, message = file_comments.send_static_check_results(results)
     logger.info("Sending results finished.")
-    logger.debug("Sending results finished. Output: code: {0}, content: {1}".format(code, message))
+    logger.debug(
+        "Sending results finished. Output: code: {0}, content: {1}".format(
+            code, message))
     return code, message
 
 
@@ -68,7 +77,9 @@ def static_check_java(file_to_check, cmd, report_flag, check_type):
         count = (-1, 'Error while executing static check: {}'.format(result))
     else:
         i = 0
-        logger.debug('Trying to count errors in file {0}_{1}.xml'.format(file_to_check, check_type))
+        logger.debug(
+            'Trying to count errors in file {0}_{1}.xml'.format(file_to_check,
+                                                                check_type))
         with open('{0}_{1}.xml'.format(file_to_check, check_type), 'r') as f:
             for line in f:
                 if report_flag in line:
@@ -109,13 +120,15 @@ def static_check_swift(cmd, result_file):
             with open(result_file, 'r') as f:
                 result_json = f.read().replace('\n', '')
         except IOError as e:
-            logger.debug('Error while processing file {0}: {1}'.format(result_file, e))
+            logger.debug(
+                'Error while processing file {0}: {1}'.format(result_file, e))
             count = (-1, e)
         else:
             try:
                 report = json.loads(result_json)
             except ValueError as e:
-                logger.debug('JSON loads operation is ended with error: {0}'.format(e))
+                logger.debug(
+                    'JSON loads operation is ended with error: {0}'.format(e))
                 count = (-1, e)
             else:
                 count = report['summary']
@@ -134,9 +147,17 @@ def count_lines(filename):
 
 
 def java_file_handler(changed_file):
+    """The function performs PMD and Checkstyle checks for a .java file,
+    and returns the results.
+
+    Args:
+        changed_file: .java file
+    """
+
     # PMD check: #####
 
-    pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
+    pmd_rules = os.environ.get("PMD_RULES",
+                               "java-codesize,java-empty,java-imports,java-strings")
     cmd = (
         'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
         .format(changed_file, pmd_rules)
@@ -148,13 +169,16 @@ def java_file_handler(changed_file):
     logger.debug('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
 
     # Checkstyle_check #####
-    checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './google_checks.xml')
-    cmd = 'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'.format(changed_file, checkstyle_rules)
+    checkstyle_rules = os.environ.get("CHECKSTYLE_RULES",
+                                      './google_checks.xml')
+    cmd = 'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'.format(
+        changed_file, checkstyle_rules)
 
     violations = '<error'
-    checkstyle_count = static_check_java(changed_file, cmd, violations, 'checkstyle')
+    checkstyle_count = static_check_java(changed_file, cmd, violations,
+                                         'checkstyle')
     logger.debug('Checkstyle count for file {0}: {1}'.format(changed_file,
-                                                    checkstyle_count))
+                                                             checkstyle_count))
     # Aggregating results:
     result = {
         'PMD errors: ': pmd_count,
@@ -166,20 +190,31 @@ def java_file_handler(changed_file):
 
 
 def swift_file_handler(changed_file):
+    """The function performs Tailor check for a .swift file and returns
+    the report.
+
+    Args:
+        changed_file: .swift file
+    """
     tailor_file = "tailor_{0}.json".format(changed_file.replace('/', '_'))
-    cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(changed_file, tailor_file)
+    cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(changed_file,
+                                                            tailor_file)
 
     tailor_count = static_check_swift(cmd, tailor_file)
 
     if type(tailor_count) == tuple:
-        logger.debug('Error while tailoring file {0}: {1}'.format(changed_file, tailor_count[1]))
+        logger.debug('Error while tailoring file {0}: {1}'.format(changed_file,
+                                                                  tailor_count[
+                                                                      1]))
         code, message = (-1, tailor_count[1])
     else:
-        logger.debug('Tailor results for file {0}: {1}'.format(changed_file, tailor_count))
+        logger.debug('Tailor results for file {0}: {1}'.format(changed_file,
+                                                               tailor_count))
         tailor_message = (
-            'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
-            .format(tailor_count['violations'], tailor_count['errors'], tailor_count['warnings'],
-                    tailor_count['skipped'])
+                'violations: {0}, errors: {1}, warnings: {2}, skipped: {3}'
+                .format(tailor_count['violations'], tailor_count['errors'],
+                        tailor_count['warnings'],
+                        tailor_count['skipped'])
         )
         result = {'Tailor Swift reports:': tailor_message}
         code, message = send_file_results(changed_file, result)
@@ -187,8 +222,15 @@ def swift_file_handler(changed_file):
 
 
 def go_file_handler(changed_file):
+    """The function performs Golint check for a .go file and returns
+    the report.
+
+    Args:
+        changed_file: .go file
+    """
     report_file = '{0}.golint'.format(changed_file.replace('/', '_'))
-    cmd = 'golint -min_confidence 0.1 {0} > {1} 2>&1'.format(changed_file, report_file)
+    cmd = 'golint -min_confidence 0.1 {0} > {1} 2>&1'.format(changed_file,
+                                                             report_file)
     execute_linux_command(cmd)
     golint_count = count_lines(report_file)
     golint_message = 'Violations: '.format(golint_count)
@@ -199,6 +241,12 @@ def go_file_handler(changed_file):
 
 
 def file_handler(checked_file, required_extension):
+    """The function defines file extension and executes appropriate check.
+
+    Args:
+        checked_file: inspected file
+        required_extension: file extension
+    """
     # If file is not required type, then go to next file.
     result = (-42, "Unknown.")
     if not checked_file or required_extension not in checked_file:
@@ -213,19 +261,34 @@ def file_handler(checked_file, required_extension):
             result = swift_file_handler(checked_file)
         elif required_extension == '.go':
             result = go_file_handler(checked_file)
+        else:
+            result = (0, 'Not checked. Unsupported extension.')
     return result
 
 
 def check_single_file(ext, filename):
+    """The function performs a single file check.
+
+    Args:
+        ext: file extension
+        filename: file name
+    """
     file_handler(filename, ext)
 
 
 def check_pr(ext):
+    """The function performs a check for changed files from a pull request
+    for a given extension.
+
+    Args:
+        ext: file extension
+    """
     logger.info("Start checking pull-request...")
     pr = PRCommits(base_api_link=base_api_link, username=user, passwd=passwd)
     # Get list of commits SHA, that are in pull-request.
     commit_list = pr.get_commits()
-    logger.debug('List of commits for pull request received: {}'.format(commit_list))
+    logger.debug(
+        'List of commits for pull request received: {}'.format(commit_list))
 
     for commit_id in commit_list:
         logger.info('Processing commit ID {}'.format(commit_id))
@@ -247,7 +310,7 @@ def check_all_project(ext):
 
 
 def main(func, ext, filename=''):
-
+    logging.getLogger(__name__)
     if func == 'all':
         check_all_project(ext)
     elif func == 'pr':
@@ -257,5 +320,4 @@ def main(func, ext, filename=''):
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
-    pass
+    main()

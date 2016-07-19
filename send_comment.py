@@ -3,6 +3,8 @@ import logging
 from conf import base_api_link, user, passwd
 from prcomments import PRState
 
+logger = logging.getLogger(__name__)
+
 
 def main(comment):
     pr = PRState(base_api_link=base_api_link, username=user, passwd=passwd)
@@ -12,4 +14,4 @@ def main(comment):
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
+    main()

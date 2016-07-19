@@ -6,8 +6,10 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 
-
+logger = logging.getLogger(__name__)
 # noinspection PyShadowingBuiltins
+
+
 class PRFile(object):
     """
     This class sends static checks results to pull request files.
@@ -50,7 +52,7 @@ class PRFile(object):
             url (str): API URL for adding comments.
         """
         if self.slug is None:
-            logger.warinig("Slug is not provided to class, trying to get it from environment variable.")
+            logger.warning("Slug is not provided to class, trying to get it from environment variable.")
             slug = os.environ.get("SLUG", "TEST_KEY")
         else:
             slug = self.slug
@@ -187,7 +189,7 @@ class PRFile(object):
         elif code == -1:
             result = (-1, message)
             logger.error("Error occurred while getting comment for file {0}. Error: {1}".format(self.checked_file,
-                                                                                                  message))
+                                                                                                message))
         else:
             result = (-1, '{0}: {1}'.format(code, message))
             logger.warning("Response is not 200 or 204. Code {0}: {1}".format(code, message))
