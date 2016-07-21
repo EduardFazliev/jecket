@@ -53,7 +53,7 @@ class PRFile(object):
     def get_config():
         with open(PRFile.config, 'r') as f:
             for line in f:
-                yield line
+                yield line.replace('\n', '')
 
     def generate_url(self):
         """This method is generate correct url for bitbucket api.
