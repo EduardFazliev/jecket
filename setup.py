@@ -10,7 +10,7 @@ setup(
         author_email='napalmedd@gmail.com',
         packages=find_packages(),
         scripts=['bin/jecket'],
-        data_files=[('/etc/jecket/', ['conf/logger.yaml'])],
+        data_files=[('/tmp/jecket', ['conf/*'])],
         install_requires=[
             'requests',
             'PyYAML'
