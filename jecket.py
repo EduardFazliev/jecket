@@ -52,11 +52,10 @@ def invoke_static_check(args):
 
 
 def invoke_send_pr_comment(args):
-    """The function invokes `send_comment` module with the following argument
-    which sends comments to a pull-request.
+    """This function executes main function from send_comment module.
 
     Args:
-        args: Text comment.
+        args: Comment text.
 
     Returns:
         None
@@ -66,7 +65,7 @@ def invoke_send_pr_comment(args):
 
 
 def invoke_set_conf(args):
-    """The function invokes `set_conf` module with the following arguments
+    """This function executes main functions from set_conf module.
 
     Args:
         args: Configuration settings. Expected values are `base_link`,
