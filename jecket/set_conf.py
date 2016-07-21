@@ -1,6 +1,6 @@
 import logging
 
-conf_file = '/etc/jecket/conf.py'
+conf_file = 'conf.py'
 
 logger = logging.getLogger(__name__)
 
