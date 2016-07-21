@@ -17,7 +17,7 @@ class PRFile(object):
     This class sends static checks results to pull request files.
     """
     fake_build_url = 'http://jenkins.test'
-    config = '/tmp/jecket/jecket.conf'
+    config = '/tmp/jecket.conf'
 
     def set_data(self, checks_author="jenkins",
                  rest_api_link="/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/",
