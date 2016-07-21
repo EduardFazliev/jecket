@@ -104,13 +104,16 @@ class PRFile(object):
             content (str): Respond's payload.
             code (int): Response's code.
         """
-        result = (-1, 'Unknown error.')
-
+        result = (-42, 'Unknown error.')
+        logger.debug('Check results will be used to generate comment message. Results: {}'.format(results))
         build_link = os.environ.get("BUILD_URL", PRFile.fake_build_url)
+        logger.debug('Get build link from environment variable. Result: {}'.format(build_link))
         text = ''
+        logger.debug('Initializing comment text...')
         try:
             for key in results.iterkeys():
                 text += "{0} {1}".format(key, results[key])
+                logger.debug('Generating comment text... current text: {}'.format(text))
         except Exception as e:
             logger.error("Error while generating comment message: {}".format(e))
         else:
