@@ -6,8 +6,6 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 
-import jecket
-
 
 logger = logging.getLogger(__name__)
 
