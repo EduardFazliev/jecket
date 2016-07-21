@@ -7,8 +7,6 @@ import yaml
 
 import jecket
 
-from jecket import set_status
-
 
 def invoke_set_status(args):
     """The function invokes `set_status` module with the following argument
@@ -25,11 +23,11 @@ def invoke_set_status(args):
     if not any([args.successful, args.failed, args.in_progress]):
         print("No status was provided.")
     elif args.successful:
-        set_status.main("SUCCESSFUL")
+        jecket.set_status.main("SUCCESSFUL")
     elif args.failed:
-        set_status.main("FAILED")
+        jecket.set_status.main("FAILED")
     elif args.in_progress:
-        set_status.main("INPROGRESS")
+        jecket.set_status.main("INPROGRESS")
 
 
 def invoke_static_check(args):

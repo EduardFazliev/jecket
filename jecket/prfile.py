@@ -16,7 +16,8 @@ class PRFile(object):
     """
     This class sends static checks results to pull request files.
     """
-    fake_build_url = "http://jenkins.test"
+    fake_build_url = 'http://jenkins.test'
+    config = '/etc/jecket/jecket.conf'
 
     def set_data(self, checks_author="jenkins",
                  rest_api_link="/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/",
@@ -37,15 +38,22 @@ class PRFile(object):
             passwd (str): password for basic auth.
         """
 
-        self.username = jecket.user
-        self.passwd = jecket.passwd
-        self.base_api_link = jecket.base_api_link
+        self.config_generator = self.get_config()
+        self.base_api_link = self.config_generator.next()
+        self.username = self.config_generator.next()
+        self.passwd = self.config_generator.next()
         self.checked_file = checked_file
         self.checks_author = "jenkins"
         self.rest_api_link = "/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/"
         self.slug = None
         self.project_name = None
         self.pull_request_id = None
+
+    @staticmethod
+    def get_config():
+        with open(PRFile.config, 'r') as f:
+            for line in f:
+                yield line
 
     def generate_url(self):
         """This method is generate correct url for bitbucket api.

@@ -3,12 +3,6 @@ import logging
 import os
 from subprocess import Popen, PIPE
 
-try:
-    from conf import base_api_link, user, passwd
-except Exception as e:
-    import jecket_exceptions
-    raise jecket_exceptions.IncorrectConfigFileException(e)
-
 import jecket
 
 
