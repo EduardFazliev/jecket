@@ -1,4 +1,4 @@
-conf_file = '/tmp/jecket/jecket.conf'
+conf_file = '/tmp/jecket.conf'
 
 
 def main(args):
