@@ -125,9 +125,7 @@ class PRFile(object):
             logger.debug('Checking comments from specific author result is {0}, message is {1}'.format(code, message))
             # if result is None, then we need to Post comment,
             # if result is Not none, then we need to PUT comment.
-            if code != 0:
-                result = (-1, message)
-            elif code == 0 and not message:
+            if code == 1 and message == 'New comment required.':
                 url = self.generate_url()
                 payload = {"text": text, "anchor": {"path": self.checked_file}}
                 logger.debug('Code is 0 and message is "False". Sending post request with payload: {}'.format(payload))
@@ -147,6 +145,8 @@ class PRFile(object):
                 }
                 logger.debug('Code is 0 and message is not "False". Sending put request with payload: {}'.format(payload))
                 result = self.send_put_request(link, payload)
+            else:
+                result = (-1, message)
         finally:
             return result
 
@@ -183,6 +183,8 @@ class PRFile(object):
                 else:
                     if comment_id_version:
                         result = (0, comment_id_version)
+        elif code == 0 and message == '':
+            result = (1, 'New comment required.')
         return result
 
     def get_all_comments_for_file(self):
@@ -199,7 +201,7 @@ class PRFile(object):
         if code in [200, 204]:
             response = json.loads(message)
             result = (0, response["values"])
-            logger.debug("Comments are successfully received.")
+            logger.debug("Comments are successfully received, result: {}.".format(result))
         elif code == -1:
             result = (-1, message)
             logger.error("Error occurred while getting comment for file {0}. Error: {1}".format(self.checked_file,
