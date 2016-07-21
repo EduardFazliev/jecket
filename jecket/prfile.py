@@ -115,13 +115,14 @@ class PRFile(object):
                 text += "{0} {1}".format(key, results[key])
                 logger.debug('Generating comment text... current text: {}'.format(text))
         except Exception as e:
-            logger.error("Error while generating comment message: {}".format(e))
+            logger.exception("Error while generating comment message: {}".format(e))
+
         else:
             text += " You can find details via link {}".format(build_link)
 
             # Get result into temp variable, and check.
             code, message = self.check_comments_from_specific_author(self.checks_author)
-
+            logger.debug('Checking comments from specific author result is {0}, message is {1}'.format(code, message))
             # if result is None, then we need to Post comment,
             # if result is Not none, then we need to PUT comment.
             if code != 0:
@@ -129,13 +130,14 @@ class PRFile(object):
             elif code == 0 and not message:
                 url = self.generate_url()
                 payload = {"text": text, "anchor": {"path": self.checked_file}}
+                logger.debug('Code is 0 and message is "False". Sending post request with payload: {}'.format(payload))
                 result = self.send_post_request(url, payload)
             elif code == 0 and message:
                 # And to PUT we need to pass additional parameters:
                 # id of existing comment and it's version.
                 url = self.generate_url()
                 comment_id, comment_version = message
-                self.base_api_link = '{0}/{1}'.format(url, comment_id)
+                link = '{0}/{1}'.format(url, comment_id)
                 payload = {
                     "version": comment_version,
                     "text": text,
@@ -143,7 +145,8 @@ class PRFile(object):
                         "path": self.checked_file
                     }
                 }
-                result = self.send_put_request(self.base_api_link, payload)
+                logger.debug('Code is 0 and message is not "False". Sending put request with payload: {}'.format(payload))
+                result = self.send_put_request(link, payload)
         finally:
             return result
 
