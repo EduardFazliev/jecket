@@ -116,7 +116,7 @@ class PRFile(object):
                 logger.debug('Generating comment text... current text: {}'.format(text))
         except Exception as e:
             logger.exception("Error while generating comment message: {}".format(e))
-
+            logger.info('Error occurred while generating comment text...')
         else:
             text += " You can find details via link {}".format(build_link)
 
@@ -163,7 +163,7 @@ class PRFile(object):
             errors.
         """
         logger.debug('Searching comments from {}'.format(author))
-        result, comment_id_version = None, False
+        result, comment_id_version = (None, False), False
         code, message = self.get_all_comments_for_file()
         if code == -1:
             result = (-1, message)
@@ -207,6 +207,7 @@ class PRFile(object):
         else:
             result = (-1, '{0}: {1}'.format(code, message))
             logger.warning("Response is not 200 or 204. Code {0}: {1}".format(code, message))
+
         return result
 
     def send_post_request(self, url, payload):
@@ -254,9 +255,10 @@ class PRFile(object):
             logger.exception("Error occurred while sending PUT request.")
             result = (-1, e)
         else:
-            logger.debug('PUT respond: staus: {0}, content: {1}'.format(response.status_code, response.content))
+            logger.debug('PUT respond: status: {0}, content: {1}'.format(response.status_code, response.content))
             result = (response.status_code, response.content)
-        return result
+        finally:
+            return result
 
     def send_get_request(self, url, payload):
         """Sends get request with spec header.
@@ -280,7 +282,8 @@ class PRFile(object):
         else:
             logger.debug('GET respond: status: {0}, content: {1}'.format(response.status_code, response.content))
             result = (response.status_code, response.content)
-        return result
+        finally:
+            return result
 
 
 if __name__ == '__main__':
