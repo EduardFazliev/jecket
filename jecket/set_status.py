@@ -1,19 +1,14 @@
 import logging
 import os
 
-try:
-    from conf import base_api_link, user, passwd
-except Exception as e:
-    import jecket_exceptions
-    raise jecket_exceptions.IncorrectConfigFileException(e)
-from prcomments import PRState
+import jecket
+
 
 logger = logging.getLogger(__name__)
 
 
 def main(status):
-
-    pr = PRState(base_api_link=base_api_link, username=user, passwd=passwd)
+    pr = jecket.PRState()
     key = os.environ.get("JOB_NAME", "Custom BUILD_TAG")
     url = os.environ.get("BUILD_URL", "http://custombuildurl.com")
     logger.debug('Pull Request status:{0}, key:{1}, url:{2}'.format(status, key, url))

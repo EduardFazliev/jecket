@@ -3,17 +3,16 @@ import json
 import logging
 import os
 
-import jecket_exceptions
-from prfile import PRFile
+import jecket
 
 logger = logging.getLogger(__name__)
 
 
-class PRState(PRFile):
+class PRState(jecket.PRFile):
     rest_api_link = '/rest/build-status/1.0/commits/'
 
-    def __init__(self, base_api_link, username, passwd):
-        super(PRState, self).__init__(base_api_link, '', username, passwd)
+    def __init__(self):
+        super(PRState, self).__init__('')
 
     def send_comment(self, comment):
         """This method sends comments to a pull-request at the generated URL.
@@ -54,9 +53,9 @@ class PRState(PRFile):
         return (code, content)
 
 
-class PRCommits(PRFile):
-    def __init__(self, base_api_link, username, passwd):
-        super(PRCommits, self).__init__(base_api_link, '', username, passwd)
+class PRCommits(jecket.PRFile):
+    def __init__(self):
+        super(PRCommits, self).__init__('')
 
     def generate_url(self):
         """This method generates the correct url for Bitbucket API.
@@ -106,6 +105,5 @@ class PRCommits(PRFile):
             commits = json.loads(message)
             result = [commit['id'] for commit in commits['values']]
         else:
-            raise jecket_exceptions.IncorrectJsonException(status=code, url=url,
-                                                           json=message)
+            raise jecket.IncorrectJsonException(status=code, url=url, json=message)
         return result

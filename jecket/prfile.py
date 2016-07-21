@@ -6,8 +6,10 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 
+import jecket
+
+
 logger = logging.getLogger(__name__)
-# noinspection PyShadowingBuiltins
 
 
 class PRFile(object):
@@ -26,7 +28,7 @@ class PRFile(object):
         self.pull_request_id = pull_request_id
         return 0
 
-    def __init__(self, base_api_link, checked_file, username, passwd):
+    def __init__(self, checked_file):
         """Args:
             base_api_link (str): link to bitbucket's api service.
             checked_file (str): path to file, that is going
@@ -35,9 +37,9 @@ class PRFile(object):
             passwd (str): password for basic auth.
         """
 
-        self.username = username
-        self.passwd = passwd
-        self.base_api_link = base_api_link
+        self.username = jecket.user
+        self.passwd = jecket.passwd
+        self.base_api_link = jecket.base_api_link
         self.checked_file = checked_file
         self.checks_author = "jenkins"
         self.rest_api_link = "/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/"

@@ -1,11 +1,13 @@
+#!/usr/bin/env python
+
+
 import argparse
 import logging.config
 import yaml
 
-import set_conf
-import send_comment
-import set_status
-import static_check
+import jecket
+
+from jecket import set_status
 
 
 def invoke_set_status(args):
@@ -31,7 +33,7 @@ def invoke_set_status(args):
 
 
 def invoke_static_check(args):
-    """The function invokes `static_check` module with the following argument
+    """The function invokes `jecket.static_check` module with the following argument
     which sends static check result to files, that was changed in pull request.
 
     Args:
@@ -42,17 +44,17 @@ def invoke_static_check(args):
         None
     """
     if args.all:
-        static_check.main(func='all', ext=args.extension)
+        jecket.static_check.main(func='all', ext=args.extension)
     elif args.pull_request:
-        static_check.main(func='pr', ext=args.extension)
+        jecket.static_check.main(func='pr', ext=args.extension)
     elif args.file is not None:
-        static_check.main(func='file', ext=args.extension, filename=args.file)
+        jecket.static_check.main(func='file', ext=args.extension, filename=args.file)
     else:
         print 'No source was provided for static check.'
 
 
 def invoke_send_pr_comment(args):
-    """This function executes main function from send_comment module.
+    """This function executes main function from jecket.send_comment module.
 
     Args:
         args: Comment text.
@@ -61,11 +63,11 @@ def invoke_send_pr_comment(args):
         None
 
     """
-    send_comment.main(args.comment)
+    jecket.send_comment.main(args.comment)
 
 
 def invoke_set_conf(args):
-    """This function executes main functions from set_conf module.
+    """This function executes main functions from jecket.set_conf module.
 
     Args:
         args: Configuration settings. Expected values are `base_link`,
@@ -78,7 +80,7 @@ def invoke_set_conf(args):
     if None in (args.base_link, args.username, args.password):
         print 'Missing required arguments.'
     else:
-        set_conf.main(args)
+        jecket.set_conf.main(args)
 
 
 def parse_args():
@@ -140,6 +142,6 @@ def main():
 
 
 if __name__ == "__main__":
-    with open("logger.yaml", "r") as log_conf:
+    with open("/etc/jecket/logger.yaml", "r") as log_conf:
         logging.config.dictConfig(yaml.load(log_conf))
     main()

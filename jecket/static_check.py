@@ -3,9 +3,14 @@ import logging
 import os
 from subprocess import Popen, PIPE
 
-from conf import base_api_link, user, passwd
-from prcomments import PRCommits
-from prfile import PRFile
+try:
+    from conf import base_api_link, user, passwd
+except Exception as e:
+    import jecket_exceptions
+    raise jecket_exceptions.IncorrectConfigFileException(e)
+
+import jecket
+
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +56,7 @@ def send_file_results(target_file, results):
             }
     """
     logger.debug('Sending results for file {}.'.format(target_file))
-    file_comments = PRFile(base_api_link=base_api_link,
-                           checked_file=target_file, username=user,
-                           passwd=passwd)
+    file_comments = jecket.PRFile(checked_file=target_file)
     code, message = file_comments.send_static_check_results(results)
     logger.info("Sending results finished.")
     logger.debug(
@@ -284,7 +287,7 @@ def check_pr(ext):
         ext: file extension
     """
     logger.info("Start checking pull-request...")
-    pr = PRCommits(base_api_link=base_api_link, username=user, passwd=passwd)
+    pr = jecket.PRCommits()
     # Get list of commits SHA, that are in pull-request.
     commit_list = pr.get_commits()
     logger.debug(
