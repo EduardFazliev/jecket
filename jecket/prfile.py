@@ -183,7 +183,7 @@ class PRFile(object):
                 else:
                     if comment_id_version:
                         result = (0, comment_id_version)
-        elif code == 0 and message == '':
+        elif code == 0 and message == []:
             result = (1, 'New comment required.')
         return result
 
