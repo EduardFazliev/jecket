@@ -153,8 +153,7 @@ def java_file_handler(changed_file):
 
     # PMD check: #####
 
-    pmd_rules = os.environ.get("PMD_RULES",
-                               "java-codesize,java-empty,java-imports,java-strings")
+    pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
     cmd = (
         'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
         .format(changed_file, pmd_rules)
@@ -166,8 +165,7 @@ def java_file_handler(changed_file):
     logger.debug('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
 
     # Checkstyle_check #####
-    checkstyle_rules = os.environ.get("CHECKSTYLE_RULES",
-                                      './google_checks.xml')
+    checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './infotech.xml')
     cmd = 'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'.format(
         changed_file, checkstyle_rules)
 
