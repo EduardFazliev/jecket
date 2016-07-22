@@ -122,15 +122,16 @@ class PRFile(object):
 
             # Get result into temp variable, and check.
             code, message = self.check_comments_from_specific_author(self.checks_author)
-            logger.debug('Checking comments from specific author result is {0}, message is {1}'.format(code, message))
+            logger.debug('Checking comments from specific author, and result is {0}, '
+                         'message is {1}'.format(code, message))
             # if result is None, then we need to Post comment,
             # if result is Not none, then we need to PUT comment.
-            if code == 1 and message == 'New comment required.':
+            if code == 0 and message == 'New comment required.':
                 url = self.generate_url()
                 payload = {"text": text, "anchor": {"path": self.checked_file}}
                 logger.debug('Code is 0 and message is "False". Sending post request with payload: {}'.format(payload))
                 result = self.send_post_request(url, payload)
-            elif code == 0 and message:
+            elif code == 0:
                 # And to PUT we need to pass additional parameters:
                 # id of existing comment and it's version.
                 url = self.generate_url()
@@ -163,11 +164,16 @@ class PRFile(object):
             errors.
         """
         logger.debug('Searching comments from {}'.format(author))
-        result, comment_id_version = (None, False), False
+        # Initialize some variables
+        result = (-42, 'Unknown Error')
+        comment_id_version = None
+
+        # Get all comments for file. If success, we will get tuple (0, messages), where 0 is success code,
+        # and message can be list of comments or empty list.
         code, message = self.get_all_comments_for_file()
         if code == -1:
             result = (-1, message)
-        elif code == 0:
+        elif code == 0 and message:
             comments = message
             for comment in comments:
                 try:
@@ -177,14 +183,14 @@ class PRFile(object):
                                      .format(self.checked_file, author, comment_id_version))
                         break
                 except Exception as e:
-                    logger.exception('Error occurred while processing with comments '
-                                     'to file {0}.'.format(self.checked_file))
+                    logger.exception('Error occurred while iterating over comments for file {}'
+                                     .format(self.checked_file))
                     result = (-1, e)
                 else:
-                    if comment_id_version:
+                    if comment_id_version is not None:
                         result = (0, comment_id_version)
-        elif code == 0 and message == []:
-            result = (1, 'New comment required.')
+        elif code == 0 and not message:
+            result = (0, 'New comment required.')
         return result
 
     def get_all_comments_for_file(self):
