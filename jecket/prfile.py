@@ -175,22 +175,31 @@ class PRFile(object):
         if code == -1:
             result = (-1, message)
         elif code == 0 and message:
+            logger.debug('Comments list is not empty, and code is 0. Trying to find comment by {0}'.format(author))
             comments = message
-            for comment in comments:
-                try:
+            try:
+                for comment in comments:
                     if comment["author"]["name"] == author:
                         comment_id_version = (comment["id"], comment["version"])
                         logger.debug('Found comment for file {0} by author {1} with ID {2}.'
                                      .format(self.checked_file, author, comment_id_version))
                         break
-                except Exception as e:
-                    logger.exception('Error occurred while iterating over comments for file {0}'
-                                     .format(self.checked_file))
-                    result = (-1, e)
+            except Exception as e:
+                logger.exception('Error occurred while iterating over comments for file {0}'
+                                 .format(self.checked_file))
+                result = (-1, e)
+            else:
+                if comment_id_version is not None:
+                    logger.debug('No comment id and version from author {0}.'.format(author))
+                    result = (0, comment_id_version)
                 else:
-                    if comment_id_version is not None:
-                        result = (0, comment_id_version)
+                    logger.debug("No comment found for author {0}. "
+                                 "Sending signal 'New comment required'.".format(author))
+                    result = (0, 'New comment required.')
+
         elif code == 0 and not message:
+            logger.debug("No comments found for file {0}. Sending signal "
+                         "'New comment required'.".format(self.checked_file))
             result = (0, 'New comment required.')
         return result
 
