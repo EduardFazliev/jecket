@@ -112,7 +112,7 @@ class PRFile(object):
         logger.debug('Initializing comment text...')
         try:
             for key in results.iterkeys():
-                text += "{0} {1}".format(key, results[key])
+                text += "{0} {1} ".format(key, results[key])
                 logger.debug('Generating comment text... current text: {0}'.format(text))
         except Exception as e:
             logger.exception("Error while generating comment message: {0}".format(e))
