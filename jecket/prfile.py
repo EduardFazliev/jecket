@@ -190,7 +190,8 @@ class PRFile(object):
                 result = (-1, e)
             else:
                 if comment_id_version is not None:
-                    logger.debug('No comment id and version from author {0}.'.format(author))
+                    logger.debug('Sending id and version of comment {0} '
+                                 'from author {1}.'.format(comment_id_version, author))
                     result = (0, comment_id_version)
                 else:
                     logger.debug("No comment found for author {0}. "
