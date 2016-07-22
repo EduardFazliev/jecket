@@ -105,20 +105,20 @@ class PRFile(object):
             code (int): Response's code.
         """
         result = (-42, 'Unknown error.')
-        logger.debug('Check results will be used to generate comment message. Results: {}'.format(results))
+        logger.debug('Check results will be used to generate comment message. Results: {0}'.format(results))
         build_link = os.environ.get("BUILD_URL", PRFile.fake_build_url)
-        logger.debug('Get build link from environment variable. Result: {}'.format(build_link))
+        logger.debug('Get build link from environment variable. Result: {0}'.format(build_link))
         text = ''
         logger.debug('Initializing comment text...')
         try:
             for key in results.iterkeys():
                 text += "{0} {1}".format(key, results[key])
-                logger.debug('Generating comment text... current text: {}'.format(text))
+                logger.debug('Generating comment text... current text: {0}'.format(text))
         except Exception as e:
-            logger.exception("Error while generating comment message: {}".format(e))
+            logger.exception("Error while generating comment message: {0}".format(e))
             logger.info('Error occurred while generating comment text...')
         else:
-            text += " You can find details via link {}".format(build_link)
+            text += " You can find details via link {0}".format(build_link)
 
             # Get result into temp variable, and check.
             code, message = self.check_comments_from_specific_author(self.checks_author)
@@ -129,7 +129,7 @@ class PRFile(object):
             if code == 0 and message == 'New comment required.':
                 url = self.generate_url()
                 payload = {"text": text, "anchor": {"path": self.checked_file}}
-                logger.debug('Code is 0 and message is "False". Sending post request with payload: {}'.format(payload))
+                logger.debug('Code is 0 and message is "False". Sending post request with payload: {0}'.format(payload))
                 result = self.send_post_request(url, payload)
             elif code == 0:
                 # And to PUT we need to pass additional parameters:
@@ -144,7 +144,8 @@ class PRFile(object):
                         "path": self.checked_file
                     }
                 }
-                logger.debug('Code is 0 and message is not "False". Sending put request with payload: {}'.format(payload))
+                logger.debug('Code is 0 and message is not "New comment required": '
+                             'Sending put request with payload: {0}'.format(payload))
                 result = self.send_put_request(link, payload)
             else:
                 result = (-1, message)
@@ -179,11 +180,11 @@ class PRFile(object):
                 try:
                     if comment["author"]["name"] == author:
                         comment_id_version = (comment["id"], comment["version"])
-                        logger.debug('Found comment for file {0} by author {1} with ID {}.'
+                        logger.debug('Found comment for file {0} by author {1} with ID {2}.'
                                      .format(self.checked_file, author, comment_id_version))
                         break
                 except Exception as e:
-                    logger.exception('Error occurred while iterating over comments for file {}'
+                    logger.exception('Error occurred while iterating over comments for file {0}'
                                      .format(self.checked_file))
                     result = (-1, e)
                 else:
@@ -199,7 +200,7 @@ class PRFile(object):
         Returns:
             result (dict of str): dictionary with comments.
         """
-        logger.debug("Trying to get all comments for file {}...".format(self.checked_file))
+        logger.debug("Trying to get all comments for file {0}...".format(self.checked_file))
         payload = {'path': self.checked_file}
         url = self.generate_url()
         code, message = self.send_get_request(url, payload)
@@ -207,7 +208,7 @@ class PRFile(object):
         if code in [200, 204]:
             response = json.loads(message)
             result = (0, response["values"])
-            logger.debug("Comments are successfully received, result: {}.".format(result))
+            logger.debug("Comments are successfully received, result: {0}.".format(result))
         elif code == -1:
             result = (-1, message)
             logger.error("Error occurred while getting comment for file {0}. Error: {1}".format(self.checked_file,
