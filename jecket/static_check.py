@@ -230,8 +230,8 @@ def go_file_handler(changed_file):
                                                              report_file)
     execute_linux_command(cmd)
     golint_count = count_lines(report_file)
-    golint_message = 'Violations: '.format(golint_count)
-    logger.debug('GoLint message: {}'.format(golint_message))
+    golint_message = 'Violations: {0}'.format(golint_count)
+    logger.debug('GoLint message: {0}'.format(golint_message))
     result = {'GoLint reports:': golint_message}
     code, message = send_file_results(changed_file, result)
     return code, message
