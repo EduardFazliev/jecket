@@ -140,6 +140,7 @@ def main():
 
 
 if __name__ == "__main__":
-    with open("/etc/jecket/logger.yaml", "r") as log_conf:
-        logging.config.dictConfig(yaml.load(log_conf))
+    # with open("/etc/jecket/logger.yaml", "r") as log_conf:
+    #    logging.config.dictConfig(yaml.load(log_conf))
+    logging.basicConfig(level=logging.DEBUG)
     main()
