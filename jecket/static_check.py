@@ -294,7 +294,8 @@ def check_pr(ext):
         logger.debug('List of files changed in commit received: {}'.format(out))
         # Generate list of files
         changed_files = [changed_file for changed_file in out.split('\n')]
-        commit_set.add(changed_files)
+        for tfile in changed_files:
+            commit_set.add(tfile)
 
     for changed_file in commit_set:
         file_handler(changed_file, ext)
