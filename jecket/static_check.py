@@ -244,7 +244,7 @@ def file_handler(checked_file, required_extension):
     """
     # If file is not required type, then go to next file.
     result = (-42, "Unknown.")
-    if not checked_file or required_extension not in checked_file:
+    if not checked_file or required_extension not in checked_file or not os.path.isfile(checked_file):
         result = (0, 'Not checked.')
     else:
         logger.debug('Checking file {}'.format(checked_file))
