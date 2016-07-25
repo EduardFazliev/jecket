@@ -296,7 +296,7 @@ def check_pr(ext):
         changed_files = [changed_file for changed_file in out.split('\n')]
         commit_set.add(changed_files)
 
-    for changed_file in changed_files:
+    for changed_file in commit_set:
         file_handler(changed_file, ext)
 
 
