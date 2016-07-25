@@ -282,12 +282,11 @@ def check_pr(ext):
     pr = jecket.PRCommits()
     # Get list of commits SHA, that are in pull-request.
     commit_list = pr.get_commits()
-    logger.debug(
-        'List of commits for pull request received: {}'.format(commit_list))
+    logger.debug('List of commits for pull request received: {}'.format(commit_list))
+    commit_set = set()
 
     for commit_id in commit_list:
         logger.info('Processing commit ID {}'.format(commit_id))
-
         # Here we will get list of files, that have been changed in this
         # commit, if command succeed.
         cmd = 'git diff-tree --no-commit-id --name-only -r {}'.format(commit_id)
@@ -295,9 +294,10 @@ def check_pr(ext):
         logger.debug('List of files changed in commit received: {}'.format(out))
         # Generate list of files
         changed_files = [changed_file for changed_file in out.split('\n')]
+        commit_set.add(changed_files)
 
-        for changed_file in changed_files:
-            file_handler(changed_file, ext)
+    for changed_file in changed_files:
+        file_handler(changed_file, ext)
 
 
 def check_all_project(ext):
