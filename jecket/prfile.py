@@ -17,8 +17,8 @@ class PRFile(object):
     fake_build_url = 'http://jenkins.test'
     config = '/tmp/jecket.conf'
 
-    def set_data(self, checks_author="jenkins",
-                 rest_api_link="/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/",
+    def set_data(self, checks_author='jenkins',
+                 rest_api_link='/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/',
                  slug=None, project_name=None, pull_request_id=None, git_commit=None):
         self.checks_author = checks_author
         self.rest_api_link = rest_api_link
@@ -29,12 +29,14 @@ class PRFile(object):
         return 0
 
     def __init__(self, checked_file):
-        """Args:
+        """
+        Args:
             base_api_link (str): link to bitbucket's api service.
             checked_file (str): path to file, that is going
                 to be checked with static checks.
             username (str): login for basic auth.
             passwd (str): password for basic auth.
+
         """
 
         self.config_generator = self.get_config()
@@ -42,8 +44,8 @@ class PRFile(object):
         self.username = self.config_generator.next()
         self.passwd = self.config_generator.next()
         self.checked_file = checked_file
-        self.checks_author = "jenkins"
-        self.rest_api_link = "/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/"
+        self.checks_author = 'jenkins'
+        self.rest_api_link = '/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/'
         self.slug = None
         self.project_name = None
         self.pull_request_id = None
@@ -62,25 +64,25 @@ class PRFile(object):
             url (str): API URL for adding comments.
         """
         if self.slug is None:
-            logger.warning("Slug is not provided to class, trying to get it from environment variable.")
-            slug = os.environ.get("SLUG", "TEST_KEY")
+            logger.warning('Slug is not provided to class, trying to get it from environment variable.')
+            slug = os.environ.get('SLUG', 'TEST_KEY')
         else:
             slug = self.slug
 
         if self.project_name is None:
-            logger.warning("Project name is not provided to class, trying to get it from environment variable.")
-            project_name = os.environ.get("PROJECT", "TEST_REPO")
+            logger.warning('Project name is not provided to class, trying to get it from environment variable.')
+            project_name = os.environ.get('PROJECT', 'TEST_REPO')
         else:
             project_name = self.project_name
 
         if self.pull_request_id is None:
-            logger.warning("Pull request ID is not provided to class, trying to get it from environment variable.")
-            pull_request_id = os.environ.get("PR_ID", "TEST_ID")
+            logger.warning('Pull request ID is not provided to class, trying to get it from environment variable.')
+            pull_request_id = os.environ.get('PR_ID', 'TEST_ID')
         else:
             pull_request_id = self.pull_request_id
 
-        logger.debug("Generating URL with parameters slug: {0}, project: {1}, "
-                     "pull request ID: {2}".format(slug, project_name, pull_request_id))
+        logger.debug('Generating URL with parameters slug: {0}, project: {1}, '
+                     'pull request ID: {2}'.format(slug, project_name, pull_request_id))
         url = self.base_api_link + self.rest_api_link
         url = url.replace('{SLUG}', slug)
         url = url.replace('{PROJECT}', project_name)
@@ -108,19 +110,19 @@ class PRFile(object):
         """
         result = (-42, 'Unknown error.')
         logger.debug('Check results will be used to generate comment message. Results: {0}'.format(results))
-        build_link = os.environ.get("BUILD_URL", PRFile.fake_build_url)
+        build_link = os.environ.get('BUILD_URL', PRFile.fake_build_url)
         logger.debug('Get build link from environment variable. Result: {0}'.format(build_link))
         text = ''
         logger.debug('Initializing comment text...')
         try:
             for key in results.iterkeys():
-                text += "{0} {1} ".format(key, results[key])
+                text += '{0} {1} '.format(key, results[key])
                 logger.debug('Generating comment text... current text: {0}'.format(text))
         except Exception as e:
-            logger.exception("Error while generating comment message: {0}".format(e))
+            logger.exception('Error while generating comment message: {0}'.format(e))
             logger.info('Error occurred while generating comment text...')
         else:
-            text += " You can find details via link {0}".format(build_link)
+            text += ' You can find details via link {0}'.format(build_link)
 
             # Get result into temp variable, and check.
             code, message = self.check_comments_from_specific_author(self.checks_author)
@@ -130,7 +132,7 @@ class PRFile(object):
             # if result is Not none, then we need to PUT comment.
             if code == 0 and message == 'New comment required.':
                 url = self.generate_url()
-                payload = {"text": text, "anchor": {"path": self.checked_file}}
+                payload = {'text': text, 'anchor': {'path': self.checked_file}}
                 logger.debug('Code is 0 and message is "False". Sending post request with payload: {0}'.format(payload))
                 result = self.send_post_request(url, payload)
             elif code == 0:
@@ -140,10 +142,10 @@ class PRFile(object):
                 comment_id, comment_version = message
                 link = '{0}/{1}'.format(url, comment_id)
                 payload = {
-                    "version": comment_version,
-                    "text": text,
-                    "anchor": {
-                        "path": self.checked_file
+                    'version': comment_version,
+                    'text': text,
+                    'anchor': {
+                        'path': self.checked_file
                     }
                 }
                 logger.debug('Code is 0 and message is not "New comment required": '
@@ -181,8 +183,8 @@ class PRFile(object):
             comments = message
             try:
                 for comment in comments:
-                    if comment["author"]["name"] == author:
-                        comment_id_version = (comment["id"], comment["version"])
+                    if comment['author']['name'] == author:
+                        comment_id_version = (comment['id'], comment['version'])
                         logger.debug('Found comment for file {0} by author {1} with ID {2}.'
                                      .format(self.checked_file, author, comment_id_version))
                         break
@@ -196,13 +198,13 @@ class PRFile(object):
                                  'from author {1}.'.format(comment_id_version, author))
                     result = (0, comment_id_version)
                 else:
-                    logger.debug("No comment found for author {0}. "
-                                 "Sending signal 'New comment required'.".format(author))
+                    logger.debug('No comment found for author {0}. '
+                                 'Sending signal "New comment required".'.format(author))
                     result = (0, 'New comment required.')
 
         elif code == 0 and not message:
-            logger.debug("No comments found for file {0}. Sending signal "
-                         "'New comment required'.".format(self.checked_file))
+            logger.debug('No comments found for file {0}. Sending signal '
+                         '"New comment required"'.format(self.checked_file))
             result = (0, 'New comment required.')
         return result
 
@@ -212,22 +214,22 @@ class PRFile(object):
         Returns:
             result (dict of str): dictionary with comments.
         """
-        logger.debug("Trying to get all comments for file {0}...".format(self.checked_file))
+        logger.debug('Trying to get all comments for file {0}...'.format(self.checked_file))
         payload = {'path': self.checked_file}
         url = self.generate_url()
         code, message = self.send_get_request(url, payload)
 
         if code in [200, 204]:
             response = json.loads(message)
-            result = (0, response["values"])
-            logger.debug("Comments are successfully received, result: {0}.".format(result))
+            result = (0, response['values'])
+            logger.debug('Comments are successfully received, result: {0}.'.format(result))
         elif code == -1:
             result = (-1, message)
-            logger.error("Error occurred while getting comment for file {0}. Error: {1}".format(self.checked_file,
+            logger.error('Error occurred while getting comment for file {0}. Error: {1}'.format(self.checked_file,
                                                                                                 message))
         else:
             result = (-1, '{0}: {1}'.format(code, message))
-            logger.warning("Response is not 200 or 204. Code {0}: {1}".format(code, message))
+            logger.warning('Response is not 200 or 204. Code {0}: {1}'.format(code, message))
 
         return result
 
@@ -242,13 +244,13 @@ class PRFile(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        result = (-42, "Unknown.")
+        result = (-42, 'Unknown.')
         logger.debug('POST request: url: {0}, payload: {1}'.format(url, payload))
         try:
-            response = requests.post(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
+            response = requests.post(url, json=payload, headers={'X-Atlassian-Token': 'no-check'},
                                      auth=HTTPBasicAuth(self.username, self.passwd))
         except Exception as e:
-            logger.exception("Error occurred while sending POST request.")
+            logger.exception('Error occurred while sending POST request.')
             result = (-1, e)
         else:
             logger.debug('POST respond: status: {0}, content: {1}'.format(response.status_code, response.content))
@@ -267,13 +269,13 @@ class PRFile(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        result = (-42, "Unknown.")
+        result = (-42, 'Unknown.')
         logger.debug('PUT request: url: {0}, payload: {1}'.format(url, payload))
         try:
-            response = requests.put(url, json=payload, headers={"X-Atlassian-Token": "no-check"},
+            response = requests.put(url, json=payload, headers={'X-Atlassian-Token': 'no-check'},
                                     auth=HTTPBasicAuth(self.username, self.passwd))
         except Exception as e:
-            logger.exception("Error occurred while sending PUT request.")
+            logger.exception('Error occurred while sending PUT request.')
             result = (-1, e)
         else:
             logger.debug('PUT respond: status: {0}, content: {1}'.format(response.status_code, response.content))
@@ -292,13 +294,13 @@ class PRFile(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        result = (-42, "Unknown.")
+        result = (-42, 'Unknown.')
         logger.debug('GET request: url: {0}, payload: {1}'.format(url, payload))
         try:
-            response = requests.get(url, params=payload, headers={"X-Atlassian-Token": "no-check"},
+            response = requests.get(url, params=payload, headers={'X-Atlassian-Token': 'no-check'},
                                     auth=HTTPBasicAuth(self.username, self.passwd))
         except Exception as e:
-            logger.exception("Error occurred while sending GET request.")
+            logger.exception('Error occurred while sending GET request.')
             result = (-1, e)
         else:
             logger.debug('GET respond: status: {0}, content: {1}'.format(response.status_code, response.content))

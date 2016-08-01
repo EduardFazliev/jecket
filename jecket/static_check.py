@@ -26,7 +26,7 @@ def execute_linux_command(cmd):
         logger.exception('Error occurred while executing command {}.'.format(cmd))
         result = (-1, e)
     else:
-        logger.debug('Command code"{0}, result"{1}, error:{2}'.format(code, out, err))
+        logger.debug('Command code: {0}, result: {1}, error: {2}'.format(code, out, err))
         if code != 0:
             result = (code, err)
         elif code == 0:
@@ -52,9 +52,9 @@ def send_file_results(target_file, results):
     logger.debug('Sending results for file {}.'.format(target_file))
     file_comments = jecket.PRFile(checked_file=target_file)
     code, message = file_comments.send_static_check_results(results)
-    logger.info("Sending results finished.")
+    logger.info('Sending results finished.')
     logger.debug(
-        "Sending results finished. Output: code: {0}, content: {1}".format(
+        'Sending results finished. Output: code: {0}, content: {1}'.format(
             code, message))
     return code, message
 
@@ -153,7 +153,7 @@ def java_file_handler(changed_file):
 
     # PMD check: #####
 
-    pmd_rules = os.environ.get("PMD_RULES", "java-codesize,java-empty,java-imports,java-strings")
+    pmd_rules = os.environ.get('PMD_RULES', 'java-codesize,java-empty,java-imports,java-strings')
     cmd = (
         'pmd/bin/run.sh pmd -l java --failOnViolation false -f xml -r {0}_pmd.xml -d {0} -R {1}'
         .format(changed_file, pmd_rules)
@@ -165,7 +165,7 @@ def java_file_handler(changed_file):
     logger.debug('PMD count for file {0}: {1}'.format(changed_file, pmd_count))
 
     # Checkstyle_check #####
-    checkstyle_rules = os.environ.get("CHECKSTYLE_RULES", './infotech.xml')
+    checkstyle_rules = os.environ.get('CHECKSTYLE_RULES', './infotech.xml')
     cmd = 'java -jar checkstyle.jar -f xml -o {0}_checkstyle.xml -c {1} {0}'.format(
         changed_file, checkstyle_rules)
 
@@ -191,7 +191,7 @@ def swift_file_handler(changed_file):
     Args:
         changed_file: .swift file
     """
-    tailor_file = "tailor_{0}.json".format(changed_file.replace('/', '_'))
+    tailor_file = 'tailor_{0}.json'.format(changed_file.replace('/', '_'))
     cmd = '/usr/local/bin/tailor -f json {0}  > {1}'.format(changed_file,
                                                             tailor_file)
 
@@ -243,7 +243,7 @@ def file_handler(checked_file, required_extension):
         required_extension: file extension
     """
     # If file is not required type, then go to next file.
-    result = (-42, "Unknown.")
+    result = (-42, 'Unknown.')
     if not checked_file or required_extension not in checked_file or not os.path.isfile(checked_file):
         result = (0, 'Not checked.')
     else:
@@ -278,7 +278,7 @@ def check_pr(ext):
     Args:
         ext: file extension
     """
-    logger.info("Start checking pull-request...")
+    logger.info('Start checking pull-request...')
     pr = jecket.PRCommits()
     # Get list of commits SHA, that are in pull-request.
     commit_list = pr.get_commits()
@@ -302,7 +302,7 @@ def check_pr(ext):
 
 
 def check_all_project(ext):
-    print "Check all project in a pull-request? Why would you do that?"
+    print 'Check all project in a pull-request? Why would you do that?'
 
 
 def main(func, ext, filename=''):

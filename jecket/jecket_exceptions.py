@@ -14,4 +14,4 @@ class IncorrectConfigFileException(Exception):
         self.message = message
 
     def __str__(self):
-        return "Something wrong with the config file, please check it. Traceback: {}".format(self.message)
+        return 'Something wrong with the config file, please check it. Traceback: {}'.format(self.message)

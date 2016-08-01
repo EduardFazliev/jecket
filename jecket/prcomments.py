@@ -24,7 +24,7 @@ class PRState(jecket.PRFile):
             POST request containing URL and text comment / POST response
         """
         url = self.generate_url()
-        payload = {"text": comment}
+        payload = {'text': comment}
         return self.send_post_request(url, payload)
 
     def send_build_status(self, state, key, url_to_build):
@@ -40,17 +40,20 @@ class PRState(jecket.PRFile):
             code (str): Response code.
 
         """
-        commit_hash = os.environ.get("GIT_COMMIT", "TEST_HASH")
+        if self.git_commit is not None:
+            commit_hash = self.git_commit
+        else:
+            commit_hash = os.environ.get('GIT_COMMIT', 'TEST_HASH')
         url = self.base_api_link + PRState.rest_api_link + commit_hash
         logger.info('Sending build status for commit {}.'.format(commit_hash))
         payload = {
-            "state": state,
-            "key": key,
-            "url": url_to_build
+            'state': state,
+            'key': key,
+            'url': url_to_build
         }
         code, content = self.send_post_request(url, payload)
         logger.info('Sending finished. Result: status - {0}, content - {1}.'.format(code, content))
-        return (code, content)
+        return code, content
 
 
 class PRCommits(jecket.PRFile):
@@ -64,20 +67,20 @@ class PRCommits(jecket.PRFile):
             url (str): api url for adding comments.
         """
         if self.slug is None:
-            logger.info("Slug is not provided to class, trying to get it from environment variable.")
-            slug = os.environ.get("SLUG", "TEST_KEY")
+            logger.info('Slug is not provided to class, trying to get it from environment variable.')
+            slug = os.environ.get('SLUG', 'TEST_KEY')
         else:
             slug = self.slug
 
         if self.project_name is None:
-            logger.info("Project name is not provided to class, trying to get it from environment variable.")
-            project_name = os.environ.get("PROJECT", "TEST_REPO")
+            logger.info('Project name is not provided to class, trying to get it from environment variable.')
+            project_name = os.environ.get('PROJECT', 'TEST_REPO')
         else:
             project_name = self.project_name
 
         if self.pull_request_id is None:
-            logger.info("Pull request ID is not provided to class, trying to get it from environment variable.")
-            pull_request_id = os.environ.get("PR_ID", "TEST_ID")
+            logger.info('Pull request ID is not provided to class, trying to get it from environment variable.')
+            pull_request_id = os.environ.get('PR_ID', 'TEST_ID')
         else:
             pull_request_id = self.pull_request_id
 
@@ -99,7 +102,7 @@ class PRCommits(jecket.PRFile):
 
         """
         url = self.generate_url()
-        payload = {"withcounts": "false"}
+        payload = {'withcounts': 'false'}
         code, message = self.send_get_request(url, payload)
         if code in [200, 204]:
             commits = json.loads(message)
