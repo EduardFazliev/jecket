@@ -19,12 +19,13 @@ class PRFile(object):
 
     def set_data(self, checks_author="jenkins",
                  rest_api_link="/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/",
-                 slug=None, project_name=None, pull_request_id=None):
+                 slug=None, project_name=None, pull_request_id=None, git_commit=None):
         self.checks_author = checks_author
         self.rest_api_link = rest_api_link
         self.slug = slug
         self.project_name = project_name
         self.pull_request_id = pull_request_id
+        self.git_commit = git_commit
         return 0
 
     def __init__(self, checked_file):
@@ -46,6 +47,7 @@ class PRFile(object):
         self.slug = None
         self.project_name = None
         self.pull_request_id = None
+        self.git_commit = None
 
     @staticmethod
     def get_config():
