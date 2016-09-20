@@ -14,21 +14,12 @@ class PRFile(object):
     """
     This class sends static checks results to pull request files.
     """
-    fake_build_url = 'http://jenkins.test'
     config = '/tmp/jecket.conf'
 
-    def set_data(self, checks_author='jenkins',
-                 rest_api_link='/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/',
-                 slug=None, project_name=None, pull_request_id=None, git_commit=None):
-        self.checks_author = checks_author
-        self.rest_api_link = rest_api_link
-        self.slug = slug
-        self.project_name = project_name
-        self.pull_request_id = pull_request_id
-        self.git_commit = git_commit
-        return 0
-
-    def __init__(self, checked_file):
+    def __init__(
+            self, checked_file,  base_api_link=None, username=None, passwd=None, git_commit=None, slug=None, project_name=None,
+            pull_request_id=None, check_author='jenkins'
+        ):
         """
         Args:
             base_api_link (str): link to bitbucket's api service.
@@ -39,17 +30,101 @@ class PRFile(object):
 
         """
 
-        self.config_generator = self.get_config()
-        self.base_api_link = self.config_generator.next()
-        self.username = self.config_generator.next()
-        self.passwd = self.config_generator.next()
+        self._base_api_link = base_api_link
+        self._username = username
+        self._passwd = passwd
         self.checked_file = checked_file
-        self.checks_author = 'jenkins'
+        self._checks_author = check_author
         self.rest_api_link = '/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/'
-        self.slug = None
-        self.project_name = None
-        self.pull_request_id = None
-        self.git_commit = None
+        self._slug = slug
+        self._project_name = project_name
+        self._pull_request_id = pull_request_id
+        self._git_commit = git_commit
+    
+    @property
+    def base_api_link(self):
+        if self._base_api_link is not None:
+            return self._base_api_link
+        else:
+            return os.environ.get('BASE_API_LINK', '0')
+
+    @base_api_link.setter
+    def base_api_link(self, value):
+        self._base_api_link = value
+
+    @property
+    def username(self):
+        if self._username is not None:
+            return self._username
+        else:
+            return os.environ.get('USERNAME', '0')
+
+    @username.setter
+    def username(self, value):
+        self._username = value
+
+    @property
+    def passwd(self):
+        if self._passwd is not None:
+            return self._passwd
+        else:
+            return os.environ.get('PASSWD', '0')
+    
+    @passwd.setter
+    def passwd(self, value):
+        self._passwd = value
+
+    @property
+    def check_author(self):
+        return self._check_author
+
+    @check_author.setter
+    def check_author(self, value):
+        self._check_author = value
+
+    @property
+    def slug(self):
+        if self._slug is not None:    
+            return self._slug
+        else:
+            return os.environ.get('SLUG','0')
+
+    @slug.setter
+    def slug(self, value):
+        self._slug = value
+
+    @property
+    def project_name(self):
+        if self._project_name is not None:
+            return self._project_name
+        else:
+            return os.environ.get('PROJECT_NAME', '0')
+
+    @project_name.setter
+    def project_name(self, value):
+        self._project_name = value
+
+    @property
+    def pull_request_id(self):
+        if self._pull_request_id is not None:
+            return self._pull_request_id
+        else:
+            return os.environ.get('PULL_REQUEST_ID', '0')
+
+    @pull_request_id.setter
+    def pull_request_id(self, value):
+        self._pull_request_id = value
+
+    @property
+    def git_commit(self):
+        if self._git_commit is not None:
+            return self._git_commit
+        else:
+            return os.environ.get('GIT_COMMIT', '0')
+
+    @git_commit.setter
+    def git_commit(self, value):
+        self._git_commit = value
 
     @staticmethod
     def get_config():
@@ -63,30 +138,12 @@ class PRFile(object):
         Returns:
             url (str): API URL for adding comments.
         """
-        if self.slug is None:
-            logger.warning('Slug is not provided to class, trying to get it from environment variable.')
-            slug = os.environ.get('SLUG', 'TEST_KEY')
-        else:
-            slug = self.slug
-
-        if self.project_name is None:
-            logger.warning('Project name is not provided to class, trying to get it from environment variable.')
-            project_name = os.environ.get('PROJECT', 'TEST_REPO')
-        else:
-            project_name = self.project_name
-
-        if self.pull_request_id is None:
-            logger.warning('Pull request ID is not provided to class, trying to get it from environment variable.')
-            pull_request_id = os.environ.get('PR_ID', 'TEST_ID')
-        else:
-            pull_request_id = self.pull_request_id
-
         logger.debug('Generating URL with parameters slug: {0}, project: {1}, '
-                     'pull request ID: {2}'.format(slug, project_name, pull_request_id))
+                     'pull request ID: {2}'.format(self.slug, self.project_name, self.pull_request_id))
         url = self.base_api_link + self.rest_api_link
-        url = url.replace('{SLUG}', slug)
-        url = url.replace('{PROJECT}', project_name)
-        url = url.replace('{PRI}', pull_request_id)
+        url = url.replace('{SLUG}', self.slug)
+        url = url.replace('{PROJECT}', self.project_name)
+        url = url.replace('{PRI}', self.pull_request_id)
         if url[-1] != '/':
             url += '/'
         url = '{0}comments'.format(url)
@@ -220,14 +277,32 @@ class PRFile(object):
         code, message = self.send_get_request(url, payload)
 
         if code in [200, 204]:
-            response = json.loads(message)
-            result = (0, response['values'])
-            logger.debug('Comments are successfully received, result: {0}.'.format(result))
+            # First let's try decode received json.
+            try:
+                response = json.loads(message)
+            except ValueError:
+                # If ValueError is raised - return error code -1 and error message.
+                logger.debug('Incorrect json received. Can not decode json.')
+                logger.info('Can not decode json.')
+                return (-1, 'Can not decode json')
+            # If json successfully decoded, we need to get value of 'values' key.
+            try:
+                result = (0, response['values'])
+            except KeyError:
+                # If KeyError is raised, then return error code -1 and error message.
+                logger.debug('No "value" key in received json.')
+                logger.info('Error in received json.')
+                return (-1, 'No "value" key in received json.')
+            else:
+                # If everything is OK, we need to return list of comments for file.
+                logger.debug('Comments are successfully received, result: {0}.'.format(result))
+                return result
         elif code == -1:
             result = (-1, message)
             logger.error('Error occurred while getting comment for file {0}. Error: {1}'.format(self.checked_file,
                                                                                                 message))
         else:
+            # If some internal programm error occurred, then return error code -1 and internal error message.
             result = (-1, '{0}: {1}'.format(code, message))
             logger.warning('Response is not 200 or 204. Code {0}: {1}'.format(code, message))
 

@@ -10,10 +10,14 @@ setup(
         author_email='napalmedd@gmail.com',
         packages=find_packages(),
         scripts=['bin/jecket'],
-        # data_files=[('/etc/jecket', ['conf/logger.yaml'])],
         install_requires=[
             'requests',
             'PyYAML'
+        ],
+        test_suite='nose.collector',
+        tests_require=[
+            'nose',
+            'mock',
         ],
         description='Jenkins <-> BitBucket integration'
 )

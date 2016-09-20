@@ -5,5 +5,5 @@ from jecket.prcomments import PRCommits, PRState
 
 __all__ = [
     'PRFile', 'PRCommits', 'PRState', 'IncorrectJsonException', 'IncorrectConfigFileException',
-    'set_conf', 'set_status', 'static_check', 'send_comment'
+    'set_status', 'static_check', 'send_comment'
 ]
