@@ -18,7 +18,7 @@ class PRFile(object):
 
     def __init__(
             self, checked_file,  base_api_link=None, username=None, passwd=None, git_commit=None, slug=None, project_name=None,
-            pull_request_id=None, check_author='jenkins'
+            pull_request_id=None, check_author='jenkins', build_url=None
         ):
         """
         Args:
@@ -40,6 +40,7 @@ class PRFile(object):
         self._project_name = project_name
         self._pull_request_id = pull_request_id
         self._git_commit = git_commit
+        self._build_url = build_url
     
     @property
     def base_api_link(self):
@@ -126,6 +127,17 @@ class PRFile(object):
     def git_commit(self, value):
         self._git_commit = value
 
+    @property
+    def build_url(self):
+        if self._git_commit is not None:
+            return self._build_url
+        else:
+            return os.environ.get('BUILD_URL', 'No URL defined.')
+
+    @build_url.setter
+    def build_url(self, value):
+        self._build_url = value
+
     @staticmethod
     def get_config():
         with open(PRFile.config, 'r') as f:
@@ -168,8 +180,7 @@ class PRFile(object):
         """
         logger.debug('Check results will be used to generate comment message. Results: {0}'.format(static_check_result))
         # TODO We need to implement build_link as property, like other stuff.
-        build_link = os.environ.get('BUILD_URL', PRFile.fake_build_url)
-        logger.debug('Get build link from environment variable. Result: {0}'.format(build_link))
+        logger.debug('Get build link from environment variable. Result: {0}'.format(self.build_url))
         text = ''
         logger.debug('Initializing comment text...')
         try:
@@ -179,10 +190,10 @@ class PRFile(object):
             logger.exception('Error while generating comment message: {0}'.format(e))
             logger.info('Error occurred while generating comment text...')
         else:
-            text += ' You can find details via link {0}'.format(build_link)
+            text += ' You can find details via link {0}'.format(self.build_url)
 
             # Get result into temp variable, and check.
-            answer = self.check_comments_from_specific_author()
+            answer = self.comment_request_type()
             code = answer[0]
 
             if code == 1:
@@ -234,7 +245,7 @@ class PRFile(object):
                 logger.exception('Error occurred while comparing authors.')
                 return -1
 
-    def check_comments_from_specific_author(self, author):
+    def comment_request_type(self):
         """Method searches for comments from specific author.
 
         Args:
@@ -246,7 +257,7 @@ class PRFile(object):
             found comment or None if nothing is found and there is no
             errors.
         """
-        logger.debug('Searching comments from {}'.format(author))
+        logger.debug('Searching comments from {}'.format(self.check_author))
         # Get all comments for file. If success, we will get tuple (0, messages), where 0 is success code,
         # and message can be list of comments or empty list.
         result = self.get_all_comments_for_file()
@@ -257,7 +268,7 @@ class PRFile(object):
 
         if code == 0:
             _, comments = result
-            logger.debug('Trying to find comment by {0}'.format(author))
+            logger.debug('Trying to find comment by {0}'.format(self.check_author))
             return self.compare_authors(comments)
 
     def get_all_comments_for_file(self):

@@ -23,6 +23,7 @@ class TestPRFile(unittest.TestCase):
         os.environ['BASE_API_LINK'] = base_api_link
         os.environ['USERNAME'] = username
         os.environ['PASSWD'] = passwd
+        os.environ['BUILD_URL'] = 'http://build.url'
 
     def test_generate_url_class_variables(self):
         expected_result = 'http://some.link/rest/api/1.0/projects/{0}/repos/{1}/pull-requests/{2}/comments'.format(slug, project_name, pull_request_id)
@@ -152,6 +153,21 @@ class TestPRFile(unittest.TestCase):
         prfile.check_author = 'Vasyan'
         result = prfile.compare_authors(comments)
         self.assertEquals(expected_result, result)
+
+    @mock.patch('jecket.PRFile.get_all_comments_for_file')
+    @mock.patch('jecket.PRFile.compare_authors')
+    @mock.patch('jecket.PRFile.send_put_request')
+    def test_send_static_check_results_0(self, mock_send_put_request, mock_compare_authors, mock_get_all_comments_for_file):
+        results = {'some_error': '5'}
+        expected_result = ('200', 'OK')
+        mock_send_put_request.return_value = ('200', 'OK')
+        mock_compare_authors.return_value = (0, 'some_id', 'some_version')
+        mock_get_all_comments_for_file.return_value = (0, 'comments')
+        prfile = PRFile('somefile')
+        result = prfile.send_static_check_results(results)
+        self.assertEquals(result, expected_result)
+
+
 
 if __name__ == '__main__':
     unittest.main()
