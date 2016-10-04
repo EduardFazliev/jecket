@@ -34,7 +34,7 @@ class PRFile(object):
         self._username = username
         self._passwd = passwd
         self.checked_file = checked_file
-        self._checks_author = check_author
+        self._check_author = check_author
         self.rest_api_link = '/rest/api/1.0/projects/{SLUG}/repos/{PROJECT}/pull-requests/{PRI}/'
         self._slug = slug
         self._project_name = project_name
@@ -144,17 +144,18 @@ class PRFile(object):
         url = url.replace('{SLUG}', self.slug)
         url = url.replace('{PROJECT}', self.project_name)
         url = url.replace('{PRI}', self.pull_request_id)
+        # We need to be sure, that URL ends with slash
         if url[-1] != '/':
             url += '/'
         url = '{0}comments'.format(url)
         return url
 
-    def send_static_check_results(self, results):
+    def send_static_check_results(self, static_check_result):
         """Method sends static check results (PMD and checkstyle
         for now) as a comment for specific file in commit.
 
         Args:
-            results (dict of title: value):
+            static_check_result (dict of title: value):
                 {
                     title (str): value (str)
                 }
@@ -165,38 +166,36 @@ class PRFile(object):
             content (str): Respond's payload.
             code (int): Response's code.
         """
-        result = (-42, 'Unknown error.')
-        logger.debug('Check results will be used to generate comment message. Results: {0}'.format(results))
+        logger.debug('Check results will be used to generate comment message. Results: {0}'.format(static_check_result))
+        # TODO We need to implement build_link as property, like other stuff.
         build_link = os.environ.get('BUILD_URL', PRFile.fake_build_url)
         logger.debug('Get build link from environment variable. Result: {0}'.format(build_link))
         text = ''
         logger.debug('Initializing comment text...')
         try:
-            for key in results.iterkeys():
-                text += '{0} {1} '.format(key, results[key])
-                logger.debug('Generating comment text... current text: {0}'.format(text))
-        except Exception as e:
+            for key in static_check_result.iterkeys():
+                text += '{0} {1}, '.format(key, static_check_result[key])
+        except (KeyError, ValueError):
             logger.exception('Error while generating comment message: {0}'.format(e))
             logger.info('Error occurred while generating comment text...')
         else:
             text += ' You can find details via link {0}'.format(build_link)
 
             # Get result into temp variable, and check.
-            code, message = self.check_comments_from_specific_author(self.checks_author)
-            logger.debug('Checking comments from specific author, and result is {0}, '
-                         'message is {1}'.format(code, message))
-            # if result is None, then we need to Post comment,
-            # if result is Not none, then we need to PUT comment.
-            if code == 0 and message == 'New comment required.':
+            answer = self.check_comments_from_specific_author()
+            code = answer[0]
+
+            if code == 1:
+                logger.debug('Adding new comment:')
                 url = self.generate_url()
                 payload = {'text': text, 'anchor': {'path': self.checked_file}}
-                logger.debug('Code is 0 and message is "False". Sending post request with payload: {0}'.format(payload))
-                result = self.send_post_request(url, payload)
+                return self.send_post_request(url, payload)
             elif code == 0:
-                # And to PUT we need to pass additional parameters:
+                logger.debug('Editing existing comment.')
+                # To PUT we need to pass additional parameters:
                 # id of existing comment and it's version.
                 url = self.generate_url()
-                comment_id, comment_version = message
+                _, comment_id, comment_version = answer
                 link = '{0}/{1}'.format(url, comment_id)
                 payload = {
                     'version': comment_version,
@@ -205,13 +204,35 @@ class PRFile(object):
                         'path': self.checked_file
                     }
                 }
-                logger.debug('Code is 0 and message is not "New comment required": '
-                             'Sending put request with payload: {0}'.format(payload))
-                result = self.send_put_request(link, payload)
+                return self.send_put_request(link, payload)
             else:
-                result = (-1, message)
-        finally:
-            return result
+                return -1
+
+    def compare_authors(self, comments):
+        """Method compares all given comments author with self.check_author.
+
+        Args:
+            comments (dict of str): dictionary with information about all comments.
+
+        Returns:
+            1 if there is no comments from self.check_author and we need to add new comment and send post request,
+            (0, comment_id, comment_version) (tuple of (int, str, str)): If there is comment from self.check_author,
+                and this means that we need to edit old comment by sending put request and for this we need
+                comment_id and comment_version,
+            -1 if there was error, traceback are logged by logger.exception.
+        """
+        for comment in comments:
+            # We do not want to raise exception here. So catch as much as possible.
+            try:
+                if comment['author']['name'] == self.check_author:
+                    comment_id_version = (comment['id'], comment['version'])
+                    logger.debug('Found comment for file {0} by author {1} with ID {2}.'
+                                 .format(self.checked_file, self.check_author, comment_id_version))
+                    return 0, comment['id'], comment['version']
+                return 1
+            except (KeyError, ValueError):
+                logger.exception('Error occurred while comparing authors.')
+                return -1
 
     def check_comments_from_specific_author(self, author):
         """Method searches for comments from specific author.
@@ -226,50 +247,25 @@ class PRFile(object):
             errors.
         """
         logger.debug('Searching comments from {}'.format(author))
-        # Initialize some variables
-        result = (-42, 'Unknown Error')
-        comment_id_version = None
-
         # Get all comments for file. If success, we will get tuple (0, messages), where 0 is success code,
         # and message can be list of comments or empty list.
-        code, message = self.get_all_comments_for_file()
+        result = self.get_all_comments_for_file()
+        code = result[0]
         if code == -1:
-            result = (-1, message)
-        elif code == 0 and message:
-            logger.debug('Comments list is not empty, and code is 0. Trying to find comment by {0}'.format(author))
-            comments = message
-            try:
-                for comment in comments:
-                    if comment['author']['name'] == author:
-                        comment_id_version = (comment['id'], comment['version'])
-                        logger.debug('Found comment for file {0} by author {1} with ID {2}.'
-                                     .format(self.checked_file, author, comment_id_version))
-                        break
-            except Exception as e:
-                logger.exception('Error occurred while iterating over comments for file {0}'
-                                 .format(self.checked_file))
-                result = (-1, e)
-            else:
-                if comment_id_version is not None:
-                    logger.debug('Sending id and version of comment {0} '
-                                 'from author {1}.'.format(comment_id_version, author))
-                    result = (0, comment_id_version)
-                else:
-                    logger.debug('No comment found for author {0}. '
-                                 'Sending signal "New comment required".'.format(author))
-                    result = (0, 'New comment required.')
+            logger.error('Comments checking for author {0} failed.'.format(self.check_author))
+            return -1
 
-        elif code == 0 and not message:
-            logger.debug('No comments found for file {0}. Sending signal '
-                         '"New comment required"'.format(self.checked_file))
-            result = (0, 'New comment required.')
-        return result
+        if code == 0:
+            _, comments = result
+            logger.debug('Trying to find comment by {0}'.format(author))
+            return self.compare_authors(comments)
 
     def get_all_comments_for_file(self):
         """Method for collecting all comments for specific file.
 
         Returns:
-            result (dict of str): dictionary with comments.
+            Tuple (0, comments) where comments is dict if comments are successfully received,
+            -1 otherwise.
         """
         logger.debug('Trying to get all comments for file {0}...'.format(self.checked_file))
         payload = {'path': self.checked_file}
@@ -282,31 +278,29 @@ class PRFile(object):
                 response = json.loads(message)
             except ValueError:
                 # If ValueError is raised - return error code -1 and error message.
-                logger.debug('Incorrect json received. Can not decode json.')
+                logger.exception('Incorrect json received. Can not decode json.')
                 logger.info('Can not decode json.')
-                return (-1, 'Can not decode json')
+                return -1
             # If json successfully decoded, we need to get value of 'values' key.
             try:
-                result = (0, response['values'])
+                comments = response['values']
             except KeyError:
                 # If KeyError is raised, then return error code -1 and error message.
-                logger.debug('No "value" key in received json.')
+                logger.exception('No "value" key in received json.')
                 logger.info('Error in received json.')
-                return (-1, 'No "value" key in received json.')
+                return -1
             else:
                 # If everything is OK, we need to return list of comments for file.
-                logger.debug('Comments are successfully received, result: {0}.'.format(result))
-                return result
+                logger.debug('Comments are successfully received, result: {0}.'.format(comments))
+                return 0, comments
         elif code == -1:
-            result = (-1, message)
             logger.error('Error occurred while getting comment for file {0}. Error: {1}'.format(self.checked_file,
                                                                                                 message))
+            return -1
         else:
             # If some internal programm error occurred, then return error code -1 and internal error message.
-            result = (-1, '{0}: {1}'.format(code, message))
-            logger.warning('Response is not 200 or 204. Code {0}: {1}'.format(code, message))
-
-        return result
+            logger.warning('Response is not 200 or 204. Code {0}: {1}, comments are NOT received.'.format(code, message))
+            return -1
 
     def send_post_request(self, url, payload):
         """Sends post request with spec header.
@@ -319,6 +313,7 @@ class PRFile(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
+        # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
         result = (-42, 'Unknown.')
         logger.debug('POST request: url: {0}, payload: {1}'.format(url, payload))
         try:
@@ -333,6 +328,7 @@ class PRFile(object):
 
         return result
 
+    # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
     def send_put_request(self, url, payload):
         """Sends put request with spec header.
 
@@ -358,6 +354,7 @@ class PRFile(object):
         finally:
             return result
 
+    # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
     def send_get_request(self, url, payload):
         """Sends get request with spec header.
 

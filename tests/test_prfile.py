@@ -52,7 +52,7 @@ class TestPRFile(unittest.TestCase):
     @mock.patch('jecket.PRFile.generate_url')
     @mock.patch('jecket.PRFile.send_get_request')
     def test_get_all_comment_for_file_502(self, get, generate):
-        expected_result = (-1, '502: {"err": "Error."}')
+        expected_result = -1
         get.return_value = (502, '{"err": "Error."}')
         generate.return_value = 'http://somelink'
         prfile = PRFile('somefile')
@@ -62,7 +62,7 @@ class TestPRFile(unittest.TestCase):
     @mock.patch('jecket.PRFile.generate_url')
     @mock.patch('jecket.PRFile.send_get_request')
     def test_get_all_comment_for_file_error(self, get, generate):
-        expected_result = (-1, 'error')
+        expected_result = -1
         get.return_value = (-1, 'error')
         generate.return_value = 'http://somelink'
         prfile = PRFile('somefile')
@@ -72,12 +72,86 @@ class TestPRFile(unittest.TestCase):
     @mock.patch('jecket.PRFile.generate_url')
     @mock.patch('jecket.PRFile.send_get_request')
     def test_get_all_comment_for_file_no_value_key(self, get, generate):
-        expected_result = (-1,'No "value" key in received json.')
+        expected_result = -1
         get.return_value = (200, '{"other_key": "Some comment."}')
         generate.return_value = 'http://somelink'
         prfile = PRFile('somefile')
         result = prfile.get_all_comments_for_file()
+        self.assertEquals(result, expected_result)
 
+    def test_compare_author_new_comment_required(self):
+        comments = [
+            {
+                'author':
+                    {
+                        'name': 'Vasyan'
+                    },
+                'id': '0',
+                'version': '13'
+            },
+            {
+                'author':
+                    {
+                        'name': 'Kolyan'
+                    },
+                'id': '1',
+                'version': '1'
+            }
+        ]
+        expected_result = 1
+        prfile = PRFile('somefile')
+        result = prfile.compare_authors(comments)
+        self.assertEquals(expected_result, result)
+
+    def test_compare_author_comment_by_spec_author_is_exist(self):
+        comments = [
+            {
+                'author':
+                    {
+                        'name': 'Vasyan'
+                    },
+                'id': '0',
+                'version': '13'
+            },
+            {
+                'author':
+                    {
+                        'name': 'Kolyan'
+                    },
+                'id': '1',
+                'version': '1'
+            }
+        ]
+        expected_result = (0, '0', '13')
+        prfile = PRFile('somefile')
+        prfile.check_author = 'Vasyan'
+        result = prfile.compare_authors(comments)
+        self.assertEquals(expected_result, result)
+
+    def test_compare_author_key_error(self):
+        comments = [
+            {
+                'author':
+                    {
+                        'author_name': 'Vasyan'
+                    },
+                'id': '0',
+                'version': '13'
+            },
+            {
+                'author':
+                    {
+                        'name': 'Kolyan'
+                    },
+                'id': '1',
+                'version': '1'
+            }
+        ]
+        expected_result = -1
+        prfile = PRFile('somefile')
+        prfile.check_author = 'Vasyan'
+        result = prfile.compare_authors(comments)
+        self.assertEquals(expected_result, result)
 
 if __name__ == '__main__':
     unittest.main()
