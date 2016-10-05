@@ -313,6 +313,8 @@ class PRFile(object):
             logger.warning('Response is not 200 or 204. Code {0}: {1}, comments are NOT received.'.format(code, message))
             return -1
 
+    # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
+    # TODO Add unit tests
     def send_post_request(self, url, payload):
         """Sends post request with spec header.
 
@@ -324,7 +326,6 @@ class PRFile(object):
             result.content (dict): Response content in json format.
             result.status_code (str): Response code.
         """
-        # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
         result = (-42, 'Unknown.')
         logger.debug('POST request: url: {0}, payload: {1}'.format(url, payload))
         try:
@@ -340,6 +341,7 @@ class PRFile(object):
         return result
 
     # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
+    # TODO Add unit tests
     def send_put_request(self, url, payload):
         """Sends put request with spec header.
 
@@ -366,6 +368,7 @@ class PRFile(object):
             return result
 
     # TODO Need refactoring. We need to make some more return-points, and make this function more readable.
+    # TODO Add unit tests
     def send_get_request(self, url, payload):
         """Sends get request with spec header.
 
